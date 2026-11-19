@@ -59,7 +59,7 @@ export const DiseaseCatalogScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Header title="Penyakit Broiler" subtitle="13 Patologi & Karakteristik Klinis" />
+      <Header title="Penyakit Broiler" />
 
       {/* Collapsible Search and Filter Container */}
       {!isSearchHidden && (

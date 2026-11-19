@@ -15,8 +15,8 @@ import { COLORS, FONTS } from '../constants/theme';
 import { useDiagnosisStore } from '../store/diagnosisStore';
 import { ConfirmModal } from '../components/ConfirmModal';
 
-// Exactly 12 avatars
-const AVATAR_OPTIONS = ['👨‍🌾', '👩‍🌾', '🩺', '🐥', '🐔', '🔬', '🏠', '🥼', '🐣', '🌾', '🥚', '🧑‍🔬'];
+// 4 Avatar Utama
+const AVATAR_OPTIONS = ['👨‍🌾', '👩‍🌾', '🩺', '🐥'];
 
 export const AuthScreen: React.FC = () => {
   const login = useDiagnosisStore((s) => s.login);
@@ -147,9 +147,9 @@ export const AuthScreen: React.FC = () => {
 
           {mode === 'register' && (
             <>
-              {/* Avatar Selector (12 choices) */}
+              {/* Avatar Selector (4 choices) */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Pilih Avatar Karakter (12 Pilihan)</Text>
+                <Text style={styles.inputLabel}>Pilih Avatar</Text>
                 <View style={styles.avatarRow}>
                   {AVATAR_OPTIONS.map((item) => {
                     const isSelected = selectedAvatar === item;

@@ -41,8 +41,8 @@ export const HomeScreen: React.FC = () => {
     totalCount > 0
       ? Math.round(filteredHistory.reduce((a, b) => a + b.percentage, 0) / totalCount)
       : history.length > 0
-      ? Math.round(history.reduce((a, b) => a + b.percentage, 0) / history.length)
-      : 0;
+        ? Math.round(history.reduce((a, b) => a + b.percentage, 0) / history.length)
+        : 0;
 
   // Real chart calculation by day of week
   const dayStats = useMemo(() => {
@@ -142,7 +142,32 @@ export const HomeScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* SECTION: MONITORING HARI INI */}
+        {/* SECTION 1: LAYANAN DIAGNOSIS (Diutamakan di atas) */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Layanan Diagnosis</Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.heroActionCard}
+          activeOpacity={0.88}
+          onPress={handleStartDiagnosis}
+        >
+          <View style={styles.heroActionLeft}>
+            <Text style={styles.heroActionTitle}>Mulai Diagnosis</Text>
+            <Text style={styles.heroActionSubtitle}>
+              Pilih gejala klinis fisik & perilaku untuk deteksi 13 penyakit broiler.
+            </Text>
+            <View style={styles.heroActionBtn}>
+              <Text style={styles.heroActionBtnText}>Buka Pemeriksaan</Text>
+              <Ionicons name="arrow-forward" size={14} color={COLORS.brand} />
+            </View>
+          </View>
+          <View style={styles.heroActionIcon}>
+            <Ionicons name="medkit" size={34} color="#FFFFFF" />
+          </View>
+        </TouchableOpacity>
+
+        {/* SECTION 2: KASUS TERKINI */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Kasus Terkini</Text>
           <TouchableOpacity onPress={() => setActiveTab('riwayat')}>
@@ -198,41 +223,12 @@ export const HomeScreen: React.FC = () => {
         ) : (
           <View style={styles.emptyCard}>
             <Ionicons name="clipboard-outline" size={32} color={COLORS.muted} />
-            <Text style={styles.emptyCardTitle}>Belum Ada Kasus Tercatat</Text>
+            <Text style={styles.emptyCardTitle}>Belum Ada Kasus</Text>
             <Text style={styles.emptyCardDesc}>
               Mulai diagnosis untuk mendeteksi penyakit kawanan ayam broiler secara cepat.
             </Text>
           </View>
         )}
-
-        {/* SECTION: AKSI UTAMA */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Layanan Diagnosis</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.heroActionCard}
-          activeOpacity={0.88}
-          onPress={handleStartDiagnosis}
-        >
-          <View style={styles.heroActionLeft}>
-            <View style={styles.heroActionBadge}>
-              <Ionicons name="flash" size={12} color="#FFFFFF" />
-              <Text style={styles.heroActionBadgeText}>CERTAINTY FACTOR</Text>
-            </View>
-            <Text style={styles.heroActionTitle}>Mulai Diagnosis</Text>
-            <Text style={styles.heroActionSubtitle}>
-              Pilih gejala klinis fisik & perilaku untuk deteksi 13 penyakit broiler.
-            </Text>
-            <View style={styles.heroActionBtn}>
-              <Text style={styles.heroActionBtnText}>Buka Pemeriksaan</Text>
-              <Ionicons name="arrow-forward" size={14} color={COLORS.brand} />
-            </View>
-          </View>
-          <View style={styles.heroActionIcon}>
-            <Ionicons name="medkit" size={36} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
 
         {/* 2 MINI ACTION BENTOS */}
         <View style={styles.bentoGrid}>

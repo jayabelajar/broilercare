@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Share } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  Alert
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { COLORS, FONTS } from '../constants/theme';
 import { useDiagnosisStore } from '../store/diagnosisStore';
 import { SYMPTOMS } from '../data/knowledgeBase';
@@ -10,8 +20,10 @@ export const DiagnosisResultScreen: React.FC = () => {
   const setActiveScreen = useDiagnosisStore((s) => s.setActiveScreen);
   const setActiveTab = useDiagnosisStore((s) => s.setActiveTab);
   const openDiseaseDetail = useDiagnosisStore((s) => s.openDiseaseDetail);
+  const user = useDiagnosisStore((s) => s.user);
 
   const [isCalcExpanded, setIsCalcExpanded] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   if (!diagnosisResults || diagnosisResults.length === 0) {
     return (
@@ -20,7 +32,7 @@ export const DiagnosisResultScreen: React.FC = () => {
           <Ionicons name="alert-circle-outline" size={48} color={COLORS.warning} />
           <Text style={styles.emptyTitle}>Bukti Gejala Belum Cukup</Text>
           <Text style={styles.emptyDesc}>
-            Kombinasi gejala yang dipilih belum mencukupi untuk mendeteksi patologi broiler tertentu secara signifikan.
+            Kombinasi gejala yang dipilih belum mencukupi untuk mendeteksi patologi ayam tertentu secara signifikan.
           </Text>
           <TouchableOpacity
             style={styles.primaryBtn}
@@ -36,19 +48,333 @@ export const DiagnosisResultScreen: React.FC = () => {
   const primary = diagnosisResults[0];
   const differentials = diagnosisResults.slice(1, 4).filter((r) => r.cfScore > 0.05);
 
-  const handleShare = async () => {
+  const generateAndSharePdf = async () => {
+    if (isGeneratingPdf) return;
+    setIsGeneratingPdf(true);
+
     try {
-      await Share.share({
-        message: `Hasil Diagnosis OhMyChick: Kawanan terindikasi ${primary.disease.name} dengan kepastian ${primary.percentage}% (Metode Certainty Factor Shortliffe).`
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
       });
-    } catch (e) {
-      // Ignored
+      const timeStr = now.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      const matchedRulesRows = primary.matchedRules
+        .map((rule, idx) => {
+          const sObj = SYMPTOMS.find((s) => s.id === rule.symptomId);
+          return `
+            <tr>
+              <td style="text-align: center; color: #64748B;">${idx + 1}</td>
+              <td style="font-weight: 600; color: #1E293B;">${sObj?.code || rule.symptomId}</td>
+              <td>${sObj?.name || rule.symptomId}</td>
+              <td style="text-align: center;">${rule.cfExpert}</td>
+              <td style="text-align: center;">${rule.cfUser}</td>
+              <td style="text-align: right; font-weight: 600; color: #2563EB;">${rule.cfCalculated.toFixed(2)}</td>
+            </tr>
+          `;
+        })
+        .join('');
+
+      const differentialsHtml =
+        differentials.length > 0
+          ? `
+          <div style="margin-top: 24px;">
+            <div style="font-size: 13px; font-weight: 700; color: #0F172A; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+              Diagnosa Banding
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+              <tbody>
+                ${differentials
+                  .map(
+                    (d) => `
+                  <tr style="border-bottom: 1px solid #E2E8F0;">
+                    <td style="padding: 8px 0; font-weight: 600; color: #1E293B;">${d.disease.name} <span style="font-style: italic; color: #64748B; font-weight: 400;">(${d.disease.latinName})</span></td>
+                    <td style="padding: 8px 0; text-align: right; font-weight: 700; color: #2563EB;">${d.percentage}% CF</td>
+                  </tr>
+                `
+                  )
+                  .join('')}
+              </tbody>
+            </table>
+          </div>
+        `
+          : '';
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Hasil Diagnosis - OhMyChick</title>
+          <style>
+            @page {
+              margin: 20mm;
+              size: A4 portrait;
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              color: #0F172A;
+              line-height: 1.5;
+              padding: 0;
+              margin: 0;
+            }
+            .header-top {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-bottom: 2px solid #2563EB;
+              padding-bottom: 12px;
+              margin-bottom: 20px;
+            }
+            .brand-title {
+              font-size: 20px;
+              font-weight: 800;
+              color: #2563EB;
+              letter-spacing: -0.5px;
+            }
+            .brand-sub {
+              font-size: 11px;
+              color: #64748B;
+              font-weight: 500;
+              margin-top: 2px;
+            }
+            .doc-meta {
+              text-align: right;
+              font-size: 11px;
+              color: #64748B;
+            }
+            .info-grid {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 12px;
+              background-color: #F8FAFC;
+              border: 1px solid #E2E8F0;
+              border-radius: 8px;
+              padding: 12px 16px;
+              margin-bottom: 20px;
+              font-size: 12px;
+            }
+            .info-item {
+              display: flex;
+              gap: 8px;
+            }
+            .info-label {
+              color: #64748B;
+              min-width: 90px;
+            }
+            .info-value {
+              font-weight: 600;
+              color: #0F172A;
+            }
+            .primary-box {
+              background-color: #EFF6FF;
+              border: 1.5px solid #BFDBFE;
+              border-radius: 10px;
+              padding: 16px;
+              margin-bottom: 20px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .disease-name {
+              font-size: 18px;
+              font-weight: 800;
+              color: #1E3A8A;
+            }
+            .disease-latin {
+              font-size: 12px;
+              font-style: italic;
+              color: #3B82F6;
+              margin-top: 2px;
+            }
+            .risk-pill {
+              display: inline-block;
+              font-size: 10px;
+              font-weight: 700;
+              color: #DC2626;
+              background-color: #FEE2E2;
+              padding: 2px 8px;
+              border-radius: 4px;
+              margin-top: 6px;
+            }
+            .score-circle {
+              text-align: right;
+            }
+            .score-pct {
+              font-size: 32px;
+              font-weight: 900;
+              color: #2563EB;
+              line-height: 1;
+            }
+            .score-label {
+              font-size: 10px;
+              font-weight: 700;
+              color: #1E40AF;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .section-title {
+              font-size: 13px;
+              font-weight: 700;
+              color: #0F172A;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              margin-top: 18px;
+              margin-bottom: 8px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 11.5px;
+              margin-bottom: 16px;
+            }
+            th {
+              background-color: #F1F5F9;
+              color: #475569;
+              font-weight: 700;
+              text-align: left;
+              padding: 8px 10px;
+              border: 1px solid #CBD5E1;
+            }
+            td {
+              padding: 7px 10px;
+              border: 1px solid #E2E8F0;
+              color: #334155;
+            }
+            .recom-card {
+              background-color: #FFFFFF;
+              border: 1px solid #E2E8F0;
+              border-radius: 8px;
+              padding: 12px 14px;
+              margin-bottom: 12px;
+              font-size: 12px;
+              color: #334155;
+              line-height: 1.6;
+            }
+            .footer-disclaimer {
+              margin-top: 30px;
+              padding-top: 12px;
+              border-top: 1px dashed #CBD5E1;
+              font-size: 10px;
+              color: #94A3B8;
+              text-align: center;
+              line-height: 1.5;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header-top">
+            <div>
+              <div class="brand-title">OhMyChick</div>
+              <div class="brand-sub">Sistem Pakar Diagnostik Kesehatan Ayam Broiler</div>
+            </div>
+            <div class="doc-meta">
+              <div><strong>Laporan Klinis Resmi</strong></div>
+              <div>Tanggal: ${dateStr}</div>
+              <div>Pukul: ${timeStr} WIB</div>
+            </div>
+          </div>
+
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Peternak:</span>
+              <span class="info-value">${user?.name || 'Peternak Broiler'}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Peternakan:</span>
+              <span class="info-value">${user?.farmName || 'Kandang Mandiri'}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Metode:</span>
+              <span class="info-value">Certainty Factor Shortliffe (1975)</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Gejala Cocok:</span>
+              <span class="info-value">${primary.matchedRules.length} Gejala Klinis</span>
+            </div>
+          </div>
+
+          <div class="primary-box">
+            <div>
+              <div style="font-size: 10px; font-weight: 700; color: #2563EB; text-transform: uppercase; letter-spacing: 0.5px;">Indikasi Utama Patologi</div>
+              <div class="disease-name">${primary.disease.name}</div>
+              <div class="disease-latin">${primary.disease.latinName}</div>
+              <div class="risk-pill">TINGKAT RESIKO: ${primary.disease.riskLevel}</div>
+            </div>
+            <div class="score-circle">
+              <div class="score-pct">${primary.percentage}%</div>
+              <div class="score-label">Certainty Factor</div>
+            </div>
+          </div>
+
+          <div class="section-title">Bukti Observasi Gejala & Perhitungan CF</div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 25px; text-align: center;">No</th>
+                <th style="width: 50px;">Kode</th>
+                <th>Gejala Terobservasi</th>
+                <th style="width: 50px; text-align: center;">CF Pakar</th>
+                <th style="width: 50px; text-align: center;">CF User</th>
+                <th style="width: 70px; text-align: right;">CF[H,E]</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${matchedRulesRows}
+            </tbody>
+          </table>
+
+          <div class="section-title">Penanganan Medis & Terapi Rekomendasi</div>
+          <div class="recom-card">
+            ${primary.disease.treatment}
+          </div>
+
+          <div class="section-title">Pencegahan & Biosekuriti Kandang</div>
+          <div class="recom-card">
+            ${primary.disease.prevention}
+          </div>
+
+          ${differentialsHtml}
+
+          <div class="footer-disclaimer">
+            Laporan ini dibuat otomatis oleh Sistem Pakar OhMyChick menggunakan algoritma Shortliffe Deterministic Rule.<br />
+            Digunakan sebagai acuan rujukan penanganan cepat dan mitigasi mortalitas kawanan broiler di kandang.
+          </div>
+        </body>
+        </html>
+      `;
+
+      const { uri } = await Print.printToFileAsync({
+        html: htmlContent,
+        base64: false
+      });
+
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Laporan Diagnosis - ${primary.disease.name}`,
+          UTI: '.pdf'
+        });
+      } else {
+        Alert.alert('Sukses', `PDF berhasil diekspor ke: ${uri}`);
+      }
+    } catch (error) {
+      console.error('Error export PDF:', error);
+      Alert.alert('Gagal Ekspor', 'Terjadi kesalahan saat membuat file PDF.');
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
   return (
     <View style={styles.container}>
-      {/* Top Bar */}
+      {/* Top Bar (No branding text, max 2 words title) */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerBtn}
@@ -56,12 +382,22 @@ export const DiagnosisResultScreen: React.FC = () => {
             setActiveTab('beranda');
             setActiveScreen('main');
           }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="arrow-back" size={20} color={COLORS.ink} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>HASIL DIAGNOSIS OHMYCHICK</Text>
-        <TouchableOpacity style={styles.headerBtn} onPress={handleShare}>
-          <Ionicons name="share-social-outline" size={20} color={COLORS.brand} />
+        <Text style={styles.headerTitle}>Hasil Diagnosis</Text>
+        <TouchableOpacity
+          style={styles.headerBtn}
+          onPress={generateAndSharePdf}
+          disabled={isGeneratingPdf}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          {isGeneratingPdf ? (
+            <ActivityIndicator size="small" color={COLORS.brand} />
+          ) : (
+            <Ionicons name="share-social-outline" size={20} color={COLORS.brand} />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -184,10 +520,18 @@ export const DiagnosisResultScreen: React.FC = () => {
         <View style={styles.actionRow}>
           <TouchableOpacity
             style={styles.detailBtn}
-            onPress={() => openDiseaseDetail(primary.disease)}
+            onPress={generateAndSharePdf}
+            disabled={isGeneratingPdf}
+            activeOpacity={0.8}
           >
-            <Ionicons name="information-circle-outline" size={16} color={COLORS.brand} />
-            <Text style={styles.detailBtnText}>Buka Detail Penyakit</Text>
+            {isGeneratingPdf ? (
+              <ActivityIndicator size="small" color={COLORS.brand} />
+            ) : (
+              <Ionicons name="document-text-outline" size={16} color={COLORS.brand} />
+            )}
+            <Text style={styles.detailBtnText}>
+              {isGeneratingPdf ? 'Membuat PDF...' : 'Bagikan PDF'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -196,6 +540,7 @@ export const DiagnosisResultScreen: React.FC = () => {
               setActiveTab('beranda');
               setActiveScreen('main');
             }}
+            activeOpacity={0.8}
           >
             <Text style={styles.finishBtnText}>Selesai & Ke Beranda</Text>
           </TouchableOpacity>
@@ -230,10 +575,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   headerTitle: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: FONTS.bold,
-    color: COLORS.ink,
-    letterSpacing: 0.5
+    color: COLORS.ink
   },
   scroll: {
     padding: 16,

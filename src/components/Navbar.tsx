@@ -14,14 +14,13 @@ export const Navbar: React.FC = () => {
     key: TabKey;
     label: string;
     icon: keyof typeof Ionicons.glyphMap;
-    activeIcon: keyof typeof Ionicons.glyphMap;
     isAction?: boolean;
   }> = [
-    { key: 'beranda', label: 'Beranda', icon: 'home-outline', activeIcon: 'home' },
-    { key: 'katalog', label: 'Penyakit', icon: 'clipboard-outline', activeIcon: 'clipboard' },
-    { key: 'diagnosis', label: 'Diagnosa', icon: 'pulse', activeIcon: 'pulse', isAction: true },
-    { key: 'riwayat', label: 'Riwayat', icon: 'time-outline', activeIcon: 'time' },
-    { key: 'profil', label: 'Profil', icon: 'person-outline', activeIcon: 'person' }
+    { key: 'beranda', label: 'Beranda', icon: 'home-outline' },
+    { key: 'katalog', label: 'Penyakit', icon: 'clipboard-outline' },
+    { key: 'diagnosis', label: 'Diagnosa', icon: 'pulse', isAction: true },
+    { key: 'riwayat', label: 'Riwayat', icon: 'time-outline' },
+    { key: 'profil', label: 'Profil', icon: 'person-outline' }
   ];
 
   const handleTabPress = (tab: typeof tabs[0]) => {
@@ -66,7 +65,7 @@ export const Navbar: React.FC = () => {
             >
               <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
                 <Ionicons
-                  name={isActive ? tab.activeIcon : tab.icon}
+                  name={tab.icon}
                   size={19}
                   color={isActive ? COLORS.brand : COLORS.muted}
                 />
@@ -122,13 +121,13 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center'
   },
   iconWrapActive: {
     backgroundColor: COLORS.brandLight,
-    borderRadius: 18,
-    borderWidth: 1.5,
     borderColor: COLORS.brandBorder
   },
   tabLabel: {

@@ -10,6 +10,7 @@ import {
   dbGetDefaultUser,
   dbSaveDiagnosis,
   dbGetDiagnosisHistory,
+  dbDeleteSingleDiagnosis,
   dbClearDiagnosisHistory,
   dbAddNotification,
   dbGetNotifications,
@@ -91,6 +92,7 @@ interface DiagnosisState {
   markNotificationsRead: () => Promise<void>;
   clearNotifications: () => Promise<void>;
   runTestSample: (sampleId: number) => void;
+  deleteHistoryItem: (id: string) => Promise<void>;
   clearHistory: () => Promise<void>;
   refreshHistory: () => Promise<void>;
   resetAll: () => Promise<void>;
@@ -448,6 +450,15 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
     });
 
     get().calculateResult();
+  },
+
+  deleteHistoryItem: async (id: string) => {
+    await dbDeleteSingleDiagnosis(id);
+    const { history } = get();
+    set({
+      history: history.filter((h) => h.id !== id),
+      offlineNotification: 'Catatan diagnosis berhasil dihapus'
+    });
   },
 
   clearHistory: async () => {

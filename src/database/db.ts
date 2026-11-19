@@ -356,6 +356,15 @@ export async function dbGetDiagnosisHistory(userId?: string): Promise<DBDiagnosi
   return userId ? memoryStore.history.filter((h) => h.user_id === userId) : memoryStore.history;
 }
 
+export async function dbDeleteSingleDiagnosis(id: string): Promise<void> {
+  const db = await getDB();
+  if (db) {
+    await db.runAsync('DELETE FROM diagnosis_history WHERE id = ?', [id]);
+  } else {
+    memoryStore.history = memoryStore.history.filter((h) => h.id !== id);
+  }
+}
+
 export async function dbClearDiagnosisHistory(userId?: string): Promise<void> {
   const db = await getDB();
   if (db) {

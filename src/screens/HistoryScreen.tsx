@@ -1,36 +1,159 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  TextInput
+  TextInput,
+  Animated,
+  PanResponder
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../constants/theme';
-import { useDiagnosisStore } from '../store/diagnosisStore';
+import { useDiagnosisStore, HistoryRecord } from '../store/diagnosisStore';
 import { Header } from '../components/Header';
-import { ConfirmModal } from '../components/ConfirmModal';
 import { DISEASES } from '../data/knowledgeBase';
 
-type DateFilterType = 'SEMUA' | 'HARI_INI' | '7_HARI' | 'BULAN_INI';
+type DateFilterType = 'SEMUA' | 'HARI_INI' | 'MINGGU_INI' | 'BULAN_INI';
+
+interface SwipeableCardProps {
+  record: HistoryRecord;
+  onPress: () => void;
+  onDelete: (id: string) => void;
+}
+
+const SwipeableHistoryCard: React.FC<SwipeableCardProps> = ({ record, onPress, onDelete }) => {
+  const pan = useRef(new Animated.Value(0)).current;
+  const isHighRisk = record.riskLevel === 'KRITIS' || record.riskLevel === 'TINGGI';
+  const matchedDisease = DISEASES.find((d) => d.id === record.diseaseId);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dy) < 10;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dx < 0) {
+          pan.setValue(Math.max(gestureState.dx, -120));
+        } else {
+          pan.setValue(Math.min(gestureState.dx * 0.2, 20));
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx < -110) {
+          // Swiped far left -> auto delete
+          Animated.timing(pan, {
+            toValue: -300,
+            duration: 200,
+            useNativeDriver: true
+          }).start(() => onDelete(record.id));
+        } else if (gestureState.dx < -50 || gestureState.vx < -0.5) {
+          // Open delete action
+          Animated.spring(pan, {
+            toValue: -80,
+            friction: 7,
+            useNativeDriver: true
+          }).start();
+        } else {
+          // Reset
+          Animated.spring(pan, {
+            toValue: 0,
+            friction: 7,
+            useNativeDriver: true
+          }).start();
+        }
+      }
+    })
+  ).current;
+
+  const handleReset = () => {
+    Animated.spring(pan, {
+      toValue: 0,
+      friction: 7,
+      useNativeDriver: true
+    }).start();
+  };
+
+  return (
+    <View style={styles.swipeContainer}>
+      {/* Background Delete Action */}
+      <View style={styles.deleteBackground}>
+        <TouchableOpacity
+          style={styles.deleteActionBtn}
+          activeOpacity={0.8}
+          onPress={() => onDelete(record.id)}
+        >
+          <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.deleteActionText}>Hapus</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Front Draggable Card */}
+      <Animated.View
+        style={[
+          styles.recordCard,
+          { transform: [{ translateX: pan }] }
+        ]}
+        {...panResponder.panHandlers}
+      >
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => {
+            handleReset();
+            onPress();
+          }}
+        >
+          <View style={styles.recordTop}>
+            <View style={styles.recordDateTime}>
+              <Ionicons name="time-outline" size={13} color={COLORS.muted} />
+              <Text style={styles.recordDateText}>{record.date} • {record.time}</Text>
+            </View>
+            <View style={[styles.riskBadge, isHighRisk ? styles.riskHigh : styles.riskMedium]}>
+              <Text style={[styles.riskBadgeText, isHighRisk ? styles.riskTextHigh : styles.riskTextMedium]}>
+                {record.riskLevel}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.recordMain}>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={styles.recordDiseaseName}>{record.diseaseName}</Text>
+              <Text style={styles.recordSymptoms}>
+                Berdasarkan {record.symptomsCount} gejala klinis kawanan
+              </Text>
+            </View>
+            <View style={styles.pctBadge}>
+              <Text style={styles.pctNumber}>{record.percentage}%</Text>
+              <Text style={styles.pctLabel}>CF</Text>
+            </View>
+          </View>
+
+          {matchedDisease && (
+            <View style={styles.recordFooter}>
+              <Text style={styles.footerHint}>Ketuk untuk lihat penanganan &rarr;</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
+  );
+};
 
 export const HistoryScreen: React.FC = () => {
   const history = useDiagnosisStore((s) => s.history);
-  const clearHistory = useDiagnosisStore((s) => s.clearHistory);
+  const deleteHistoryItem = useDiagnosisStore((s) => s.deleteHistoryItem);
   const refreshHistory = useDiagnosisStore((s) => s.refreshHistory);
   const openDiseaseDetail = useDiagnosisStore((s) => s.openDiseaseDetail);
 
   const [dateFilter, setDateFilter] = useState<DateFilterType>('SEMUA');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isConfirmClearVisible, setIsConfirmClearVisible] = useState(false);
 
   useEffect(() => {
     refreshHistory();
   }, []);
 
-  // Real functioning date and keyword filter from SQLite history records
+  // Filtered by ringkas: Semua, Hari Ini, Minggu Ini, Bulan Ini
   const filteredHistory = useMemo(() => {
     const now = Date.now();
     const todayStr = new Date().toLocaleDateString('id-ID', {
@@ -43,7 +166,7 @@ export const HistoryScreen: React.FC = () => {
       // Date filter
       if (dateFilter === 'HARI_INI') {
         if (item.date !== todayStr) return false;
-      } else if (dateFilter === '7_HARI') {
+      } else if (dateFilter === 'MINGGU_INI') {
         const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
         if (item.createdTimestamp && item.createdTimestamp < sevenDaysAgo) return false;
       } else if (dateFilter === 'BULAN_INI') {
@@ -65,11 +188,6 @@ export const HistoryScreen: React.FC = () => {
     });
   }, [history, dateFilter, searchQuery]);
 
-  const handleExecuteClear = async () => {
-    setIsConfirmClearVisible(false);
-    await clearHistory();
-  };
-
   const avgAccuracy =
     filteredHistory.length > 0
       ? Math.round(filteredHistory.reduce((acc, h) => acc + h.percentage, 0) / filteredHistory.length)
@@ -79,7 +197,7 @@ export const HistoryScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Header title="Riwayat Diagnosis" subtitle="Monitoring Kasus Broiler" />
+      <Header title="Riwayat Diagnosis" />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -102,13 +220,13 @@ export const HistoryScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Real Working Date Filter Selector */}
+        {/* Ringkas Date Filter Selector: Semua, Hari Ini, Minggu Ini, Bulan Ini */}
         <View style={styles.filterRow}>
           {(
             [
-              { key: 'SEMUA', label: 'Semua Waktu' },
+              { key: 'SEMUA', label: 'Semua' },
               { key: 'HARI_INI', label: 'Hari Ini' },
-              { key: '7_HARI', label: '7 Hari Terakhir' },
+              { key: 'MINGGU_INI', label: 'Minggu Ini' },
               { key: 'BULAN_INI', label: 'Bulan Ini' }
             ] as Array<{ key: DateFilterType; label: string }>
           ).map((f) => {
@@ -159,7 +277,7 @@ export const HistoryScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Consultation Records Section Header (Max 2 words, no clear button here) */}
+        {/* Consultation Records Section Header */}
         <View style={styles.recordsSectionHeader}>
           <Text style={styles.sectionTitle}>Daftar Kasus</Text>
         </View>
@@ -177,82 +295,22 @@ export const HistoryScreen: React.FC = () => {
         ) : (
           <View style={styles.recordsList}>
             {filteredHistory.map((record) => {
-              const isHighRisk = record.riskLevel === 'KRITIS' || record.riskLevel === 'TINGGI';
               const matchedDisease = DISEASES.find((d) => d.id === record.diseaseId);
 
               return (
-                <TouchableOpacity
+                <SwipeableHistoryCard
                   key={record.id}
-                  style={styles.recordCard}
-                  activeOpacity={0.8}
+                  record={record}
                   onPress={() => {
                     if (matchedDisease) openDiseaseDetail(matchedDisease);
                   }}
-                >
-                  <View style={styles.recordTop}>
-                    <View style={styles.recordDateTime}>
-                      <Ionicons name="time-outline" size={13} color={COLORS.muted} />
-                      <Text style={styles.recordDateText}>{record.date} • {record.time}</Text>
-                    </View>
-                    <View style={[styles.riskBadge, isHighRisk ? styles.riskHigh : styles.riskMedium]}>
-                      <Text style={[styles.riskBadgeText, isHighRisk ? styles.riskTextHigh : styles.riskTextMedium]}>
-                        {record.riskLevel}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.recordMain}>
-                    <View style={{ flex: 1, paddingRight: 8 }}>
-                      <Text style={styles.recordDiseaseName}>{record.diseaseName}</Text>
-                      <Text style={styles.recordSymptoms}>
-                        Berdasarkan {record.symptomsCount} gejala klinis kawanan
-                      </Text>
-                    </View>
-                    <View style={styles.pctBadge}>
-                      <Text style={styles.pctNumber}>{record.percentage}%</Text>
-                      <Text style={styles.pctLabel}>CF</Text>
-                    </View>
-                  </View>
-
-                  {matchedDisease && (
-                    <View style={styles.recordFooter}>
-                      <Text style={styles.footerHint}>Ketuk untuk lihat penanganan &rarr;</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
+                  onDelete={(id) => deleteHistoryItem(id)}
+                />
               );
             })}
-
-            {/* Clear DB Button at bottom-right corner of card list (Icon only, no text) */}
-            {history.length > 0 && (
-              <View style={styles.clearDbRow}>
-                <TouchableOpacity
-                  style={styles.clearDbCircleBtn}
-                  activeOpacity={0.8}
-                  onPress={() => setIsConfirmClearVisible(true)}
-                >
-                  <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
         )}
       </ScrollView>
-
-      {/* Styled UI Confirm Modal */}
-      <ConfirmModal
-        visible={isConfirmClearVisible}
-        title="Bersihkan Riwayat"
-        message="Seluruh catatan hasil diagnosis di penyimpanan lokal akan dihapus secara permanen."
-        icon="trash"
-        iconColor={COLORS.danger}
-        iconBg="#FEE2E2"
-        confirmText="Hapus Semua"
-        cancelText="Batal"
-        isDestructive={true}
-        onConfirm={handleExecuteClear}
-        onCancel={() => setIsConfirmClearVisible(false)}
-      />
     </View>
   );
 };
@@ -291,8 +349,8 @@ const styles = StyleSheet.create({
     gap: 6
   },
   datePill: {
-    paddingHorizontal: 11,
-    paddingVertical: 5.5,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 10,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
@@ -303,7 +361,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.brandBorder
   },
   datePillText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontFamily: FONTS.medium,
     color: COLORS.muted
   },
@@ -392,6 +450,34 @@ const styles = StyleSheet.create({
   recordsList: {
     gap: 10
   },
+  swipeContainer: {
+    position: 'relative',
+    borderRadius: 16,
+    overflow: 'hidden'
+  },
+  deleteBackground: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    right: 0,
+    width: 80,
+    backgroundColor: COLORS.danger,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  deleteActionBtn: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 2
+  },
+  deleteActionText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontFamily: FONTS.bold
+  },
   recordCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 16,
@@ -444,7 +530,8 @@ const styles = StyleSheet.create({
   recordMain: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
+    marginTop: 4
   },
   recordDiseaseName: {
     fontSize: 14,
@@ -480,32 +567,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.lineSubtle,
     paddingTop: 8,
-    marginTop: 2
+    marginTop: 4
   },
   footerHint: {
     fontSize: 10.5,
     fontFamily: FONTS.semiBold,
     color: COLORS.brand
-  },
-  clearDbRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingTop: 4,
-    paddingRight: 2
-  },
-  clearDbCircleBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#FEE2E2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2
   }
 });

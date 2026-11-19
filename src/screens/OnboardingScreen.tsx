@@ -16,10 +16,10 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const SLIDES = [
   {
-    tag: 'SISTEM PAKAR BROILER',
-    title: 'Deteksi Dini Kesehatan Broiler Anda',
+    tag: 'SISTEM PAKAR',
+    title: 'Deteksi Dini Kesehatan Ternak',
     description:
-      'Identifikasi gejala klinis ayam secara cepat dan akurat menggunakan mesin inferensi berbasis kepakaran veteriner.',
+      'Identifikasi gejala klinis secara cepat dan akurat menggunakan mesin inferensi berbasis kepakaran veteriner.',
     icon: 'medkit' as const,
     cardBg: '#EFF6FF',
     iconColor: COLORS.brand,
@@ -72,7 +72,7 @@ export const OnboardingScreen: React.FC = () => {
       <View style={styles.topBar}>
         <View style={styles.brandBadge}>
           <Ionicons name="medkit" size={14} color={COLORS.brand} />
-          <Text style={styles.brandBadgeText}>OhMyChick Broiler</Text>
+          <Text style={styles.brandBadgeText}>OhMyChick</Text>
         </View>
         {!isLast && (
           <TouchableOpacity onPress={handleSkip} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>

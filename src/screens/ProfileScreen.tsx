@@ -67,7 +67,7 @@ export const ProfileScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Header title="Profil Peternak" subtitle="Kelola Akun & Basis Pengetahuan" />
+      <Header title="Profil Peternak" />
 
       <ScrollView
         contentContainerStyle={styles.scroll}

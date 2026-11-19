@@ -26,17 +26,17 @@ export const SettingsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Header title="Pengaturan & Info" subtitle="Spesifikasi Sistem Pakar" />
+      <Header title="Pengaturan" />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* App Specification Card */}
         <View style={styles.card}>
           <View style={styles.cardHead}>
             <View style={styles.appIcon}>
-              <Text style={styles.appIconText}>AC</Text>
+              <Text style={styles.appIconText}>OMC</Text>
             </View>
             <View>
-              <Text style={styles.appName}>AyamCare Broiler Mobile</Text>
+              <Text style={styles.appName}>OhMyChick Mobile</Text>
               <Text style={styles.appVer}>v1.0.0 — Offline-First Architecture</Text>
             </View>
           </View>

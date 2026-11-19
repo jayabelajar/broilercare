@@ -6,34 +6,35 @@ import { useDiagnosisStore } from '../store/diagnosisStore';
 
 interface HeaderProps {
   title?: string;
-  subtitle?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
+export const Header: React.FC<HeaderProps> = ({ title }) => {
   const user = useDiagnosisStore((s) => s.user);
   const notifications = useDiagnosisStore((s) => s.notifications);
   const openNotificationModal = useDiagnosisStore((s) => s.openNotificationModal);
 
-  const displayName = user ? user.name.split(' ')[0] : 'Peternak';
+  // Ambil nama maksimal 2 kata + emotikon tangan melambai di akhir
+  const nameWords = user?.name ? user.name.trim().split(/\s+/) : ['Peternak'];
+  const shortName = nameWords.slice(0, 2).join(' ');
+  const defaultGreeting = `Halo, ${shortName} 👋`;
+
   const unreadCount = notifications.filter((n) => n.is_read === 0).length;
 
   return (
     <View style={styles.container}>
-      {/* Title & Subtitle - Clean, Airy, Apple Health Style */}
+      {/* Hanya Title Saja Tanpa Deskripsi / Tanpa Teks Farm */}
       <View style={styles.left}>
-        <Text style={styles.greetingTitle} numberOfLines={1}>
-          {title || `Halo, ${displayName}`}
-        </Text>
-        <Text style={styles.greetingSub} numberOfLines={1}>
-          {subtitle || (user?.farmName ? `🏠 ${user.farmName}` : 'Sistem Pakar Broiler')}
+        <Text style={styles.title} numberOfLines={1}>
+          {title || defaultGreeting}
         </Text>
       </View>
 
-      {/* Clean White Circular Notification Button */}
+      {/* Ikon Notifikasi Responsif */}
       <TouchableOpacity
         style={styles.notifBtn}
         activeOpacity={0.7}
         onPress={openNotificationModal}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <View style={styles.notifCircle}>
           <Ionicons
@@ -58,8 +59,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
     backgroundColor: COLORS.canvas,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(226, 232, 240, 0.7)'
@@ -67,27 +68,21 @@ const styles = StyleSheet.create({
   left: {
     flex: 1,
     justifyContent: 'center',
-    paddingRight: 10
+    paddingRight: 12
   },
-  greetingTitle: {
+  title: {
     fontSize: 20,
     fontFamily: FONTS.extraBold,
     color: COLORS.ink,
     letterSpacing: -0.4
   },
-  greetingSub: {
-    fontSize: 12,
-    color: COLORS.muted,
-    fontFamily: FONTS.medium,
-    marginTop: 2
-  },
   notifBtn: {
     padding: 2
   },
   notifCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.line,
@@ -97,13 +92,13 @@ const styles = StyleSheet.create({
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 5,
+    shadowRadius: 4,
     elevation: 2
   },
   badge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: 3,
+    right: 3,
     minWidth: 16,
     height: 16,
     borderRadius: 8,
