@@ -2,6 +2,22 @@ import { create } from 'zustand';
 import { Disease, DiseaseDiagnosisResult } from '../core/certainty-factor/types';
 import { DISEASES, DIAGNOSTIC_RULES, RESEARCH_SAMPLES } from '../data/knowledgeBase';
 import { diagnoseDiseases } from '../core/certainty-factor/calculateCF';
+import {
+  initDatabase,
+  dbLoginUser,
+  dbRegisterUser,
+  dbUpdateUserProfile,
+  dbGetDefaultUser,
+  dbSaveDiagnosis,
+  dbGetDiagnosisHistory,
+  dbClearDiagnosisHistory,
+  dbAddNotification,
+  dbGetNotifications,
+  dbMarkNotificationsRead,
+  dbClearNotifications,
+  DBDiagnosisRecord,
+  DBNotification
+} from '../database/db';
 
 export interface UserProfile {
   id: string;
@@ -22,6 +38,7 @@ export interface HistoryRecord {
   percentage: number;
   symptomsCount: number;
   riskLevel: string;
+  createdTimestamp?: number;
 }
 
 export type TabKey = 'beranda' | 'katalog' | 'diagnosis' | 'riwayat' | 'profil';
@@ -43,14 +60,19 @@ interface DiagnosisState {
   selectedCategory: string;
   diagnosisResults: DiseaseDiagnosisResult[] | null;
   history: HistoryRecord[];
+  notifications: DBNotification[];
+  isNotificationModalOpen: boolean;
   selectedDiseaseDetail: Disease | null;
   isTestBenchOpen: boolean;
   offlineNotification: string | null;
+  isDBReady: boolean;
 
   // Actions
+  initAppDB: () => Promise<void>;
   finishOnboarding: () => void;
-  login: (email: string, name?: string, farmName?: string) => void;
-  register: (name: string, farmName: string, email: string) => void;
+  login: (email: string, password?: string) => Promise<{ success: boolean; message?: string }>;
+  register: (name: string, farmName: string, email: string, password?: string, avatar?: string) => Promise<{ success: boolean; message?: string }>;
+  updateProfile: (name: string, farmName: string, avatar?: string) => Promise<boolean>;
   guestLogin: () => void;
   logout: () => void;
   setActiveTab: (tab: TabKey) => void;
@@ -59,25 +81,31 @@ interface DiagnosisState {
   toggleSymptom: (symptomId: string) => void;
   setSymptomConfidence: (symptomId: string, value: number) => void;
   clearSymptoms: () => void;
-  calculateResult: () => void;
+  calculateResult: () => Promise<void>;
   openDiseaseDetail: (disease: Disease) => void;
   closeDiseaseDetail: () => void;
   openTestBench: () => void;
   closeTestBench: () => void;
+  openNotificationModal: () => void;
+  closeNotificationModal: () => void;
+  markNotificationsRead: () => Promise<void>;
+  clearNotifications: () => Promise<void>;
   runTestSample: (sampleId: number) => void;
-  clearHistory: () => void;
-  resetAll: () => void;
+  clearHistory: () => Promise<void>;
+  refreshHistory: () => Promise<void>;
+  resetAll: () => Promise<void>;
   dismissNotification: () => void;
 }
 
 export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
   hasOnboarded: true,
   user: {
-    id: 'USR-01',
+    id: 'USR-SEED-01',
     name: 'Budi Santoso',
     farmName: 'Berkah Broiler Farm',
-    email: 'peternak@ayamcare.id',
-    location: 'Ciamis, Jawa Barat'
+    email: 'peternak@ohmychick.id',
+    location: 'Ciamis, Jawa Barat',
+    avatar: '👨‍🌾'
   },
   activeTab: 'beranda',
   activeScreen: 'main',
@@ -86,32 +114,75 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
   selectedCategory: 'SEMUA',
   diagnosisResults: null,
   offlineNotification: null,
+  isNotificationModalOpen: false,
+  isDBReady: false,
+  notifications: [
+    {
+      id: 'NOTIF-INIT-1',
+      user_id: 'USR-SEED-01',
+      title: 'Selamat Datang di OhMyChick!',
+      message: 'Sistem siap membantu diagnosis kesehatan ayam broiler Anda dengan metode Certainty Factor.',
+      date: '8 Nov 2026',
+      time: '18:30',
+      is_read: 0,
+      type: 'system',
+      created_timestamp: Date.now()
+    }
+  ],
   history: [
     {
       id: 'HIST-INIT-1',
-      userId: 'USR-01',
+      userId: 'USR-SEED-01',
       date: '8 Nov 2026',
       time: '18:30',
       diseaseName: 'CRD (Chronic Respiratory Disease)',
       diseaseId: 'P13',
       percentage: 99,
       symptomsCount: 5,
-      riskLevel: 'SEDANG'
-    },
-    {
-      id: 'HIST-INIT-2',
-      userId: 'USR-01',
-      date: '7 Nov 2026',
-      time: '10:15',
-      diseaseName: 'Berak Darah (Koksidiosis)',
-      diseaseId: 'P06',
-      percentage: 80,
-      symptomsCount: 3,
-      riskLevel: 'TINGGI'
+      riskLevel: 'SEDANG',
+      createdTimestamp: Date.now() - 86400000
     }
   ],
   selectedDiseaseDetail: null,
   isTestBenchOpen: false,
+
+  initAppDB: async () => {
+    try {
+      await initDatabase();
+      const defaultUser = await dbGetDefaultUser();
+      const user = defaultUser ? {
+        id: defaultUser.id,
+        name: defaultUser.name,
+        farmName: defaultUser.farm_name,
+        email: defaultUser.email,
+        avatar: defaultUser.avatar || '👨‍🌾'
+      } : get().user;
+
+      const dbHistory = await dbGetDiagnosisHistory(user?.id);
+      const dbNotifs = await dbGetNotifications(user?.id);
+
+      set({
+        isDBReady: true,
+        user,
+        history: dbHistory.map((h) => ({
+          id: h.id,
+          userId: h.user_id,
+          date: h.date,
+          time: h.time,
+          diseaseName: h.disease_name,
+          diseaseId: h.disease_id,
+          percentage: h.percentage,
+          symptomsCount: h.symptoms_count,
+          riskLevel: h.risk_level,
+          createdTimestamp: h.created_timestamp
+        })),
+        notifications: dbNotifs
+      });
+    } catch (err) {
+      console.warn('[Store] DB Init error:', err);
+      set({ isDBReady: true });
+    }
+  },
 
   finishOnboarding: () => {
     const { user } = get();
@@ -122,32 +193,103 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
     });
   },
 
-  login: (email, name = 'Peternak Broiler', farmName = 'Kandang Sejahtera') => {
-    set({
-      user: {
-        id: `USR-${Date.now()}`,
-        name,
-        farmName,
-        email,
-        location: 'Jawa Barat, ID'
-      },
-      activeScreen: 'main',
-      activeTab: 'beranda'
-    });
+  login: async (email, password = '') => {
+    try {
+      const res = await dbLoginUser(email, password);
+      if (res.success && res.user) {
+        const u = res.user;
+        const profile: UserProfile = {
+          id: u.id,
+          name: u.name,
+          farmName: u.farm_name,
+          email: u.email,
+          avatar: u.avatar || '👨‍🌾'
+        };
+        const dbHistory = await dbGetDiagnosisHistory(profile.id);
+        const dbNotifs = await dbGetNotifications(profile.id);
+
+        set({
+          user: profile,
+          activeScreen: 'main',
+          activeTab: 'beranda',
+          history: dbHistory.map((h) => ({
+            id: h.id,
+            userId: h.user_id,
+            date: h.date,
+            time: h.time,
+            diseaseName: h.disease_name,
+            diseaseId: h.disease_id,
+            percentage: h.percentage,
+            symptomsCount: h.symptoms_count,
+            riskLevel: h.risk_level,
+            createdTimestamp: h.created_timestamp
+          })),
+          notifications: dbNotifs,
+          offlineNotification: `👋 Selamat datang kembali, ${profile.name}!`
+        });
+        return { success: true };
+      }
+      return { success: false, message: res.message || 'Gagal masuk akun' };
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Terjadi kesalahan' };
+    }
   },
 
-  register: (name, farmName, email) => {
-    set({
-      user: {
-        id: `USR-${Date.now()}`,
-        name,
-        farmName,
-        email,
-        location: 'Jawa Barat, ID'
-      },
-      activeScreen: 'main',
-      activeTab: 'beranda'
-    });
+  register: async (name, farmName, email, password = '123456', avatar = '👨‍🌾') => {
+    try {
+      const res = await dbRegisterUser(name, farmName, email, password, avatar);
+      if (res.success && res.user) {
+        const u = res.user;
+        const profile: UserProfile = {
+          id: u.id,
+          name: u.name,
+          farmName: u.farm_name,
+          email: u.email,
+          avatar: u.avatar || avatar
+        };
+        // Add welcome notification
+        await dbAddNotification(
+          profile.id,
+          'Akun Berhasil Didaftarkan',
+          `Selamat datang di OhMyChick, ${profile.name}! Peternakan ${profile.farmName} siap didiagnosis.`,
+          'system'
+        );
+        const dbNotifs = await dbGetNotifications(profile.id);
+
+        set({
+          user: profile,
+          activeScreen: 'main',
+          activeTab: 'beranda',
+          history: [],
+          notifications: dbNotifs,
+          offlineNotification: `🎉 Pendaftaran sukses! Halo, ${profile.name}.`
+        });
+        return { success: true };
+      }
+      return { success: false, message: res.message || 'Gagal mendaftar' };
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Terjadi kesalahan' };
+    }
+  },
+
+  updateProfile: async (name, farmName, avatar) => {
+    const { user } = get();
+    if (!user) return false;
+    try {
+      await dbUpdateUserProfile(user.id, name, farmName, avatar);
+      set({
+        user: {
+          ...user,
+          name,
+          farmName,
+          avatar: avatar || user.avatar
+        },
+        offlineNotification: '✅ Profil peternak berhasil diperbarui!'
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
   },
 
   guestLogin: () => {
@@ -156,7 +298,8 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
         id: 'GUEST',
         name: 'Tamu (Peternak)',
         farmName: 'Mode Tamu Offline',
-        email: 'tamu@offline.local'
+        email: 'tamu@ohmychick.local',
+        avatar: '🐥'
       },
       activeScreen: 'main',
       activeTab: 'beranda'
@@ -199,7 +342,7 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
 
   clearSymptoms: () => set({ selectedSymptoms: [], confidenceValues: {} }),
 
-  calculateResult: () => {
+  calculateResult: async () => {
     const { selectedSymptoms, confidenceValues, history, user } = get();
     const selections = selectedSymptoms.map((id) => ({
       symptomId: id,
@@ -211,23 +354,52 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
     if (results.length > 0) {
       const primary = results[0];
       const now = new Date();
+      const currentUserId = user ? user.id : 'GUEST';
+      const recordId = `HIST-${Date.now()}`;
+
       const newHistoryItem: HistoryRecord = {
-        id: `HIST-${Date.now()}`,
-        userId: user ? user.id : 'GUEST',
+        id: recordId,
+        userId: currentUserId,
         date: now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
         time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
         diseaseName: primary.disease.name,
         diseaseId: primary.disease.id,
         percentage: primary.percentage,
         symptomsCount: primary.matchedRules.length,
-        riskLevel: primary.disease.riskLevel
+        riskLevel: primary.disease.riskLevel,
+        createdTimestamp: now.getTime()
       };
+
+      // Save to SQLite
+      await dbSaveDiagnosis({
+        id: newHistoryItem.id,
+        user_id: newHistoryItem.userId,
+        date: newHistoryItem.date,
+        time: newHistoryItem.time,
+        disease_name: newHistoryItem.diseaseName,
+        disease_id: newHistoryItem.diseaseId,
+        percentage: newHistoryItem.percentage,
+        symptoms_count: newHistoryItem.symptomsCount,
+        risk_level: newHistoryItem.riskLevel,
+        created_timestamp: now.getTime()
+      });
+
+      // Add Notification to SQLite
+      const notif = await dbAddNotification(
+        currentUserId,
+        `Diagnosis Selesai: ${primary.disease.name}`,
+        `Terindikasi ${primary.disease.name} dengan tingkat kepastian ${primary.percentage}% berdasarkan ${primary.matchedRules.length} gejala.`,
+        'diagnosis'
+      );
+
+      const updatedNotifs = await dbGetNotifications(currentUserId);
 
       set({
         diagnosisResults: results,
         activeScreen: 'diagnosis_result',
-        history: [newHistoryItem, ...history.slice(0, 40)],
-        offlineNotification: '✅ Diagnosis Selesai & Tersimpan Secara Offline'
+        history: [newHistoryItem, ...history.slice(0, 50)],
+        notifications: updatedNotifs,
+        offlineNotification: `✅ Diagnosis Selesai: ${primary.disease.name} (${primary.percentage}%)`
       });
     } else {
       set({
@@ -238,8 +410,23 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
     }
   },
 
-  dismissNotification: () => set({ offlineNotification: null }),
+  openNotificationModal: () => set({ isNotificationModalOpen: true }),
+  closeNotificationModal: () => set({ isNotificationModalOpen: false }),
 
+  markNotificationsRead: async () => {
+    const { user } = get();
+    await dbMarkNotificationsRead(user?.id);
+    const updated = await dbGetNotifications(user?.id);
+    set({ notifications: updated });
+  },
+
+  clearNotifications: async () => {
+    const { user } = get();
+    await dbClearNotifications(user?.id);
+    set({ notifications: [] });
+  },
+
+  dismissNotification: () => set({ offlineNotification: null }),
   openDiseaseDetail: (disease) => set({ selectedDiseaseDetail: disease }),
   closeDiseaseDetail: () => set({ selectedDiseaseDetail: null }),
   openTestBench: () => set({ isTestBenchOpen: true }),
@@ -263,8 +450,35 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
     get().calculateResult();
   },
 
-  clearHistory: () => set({ history: [] }),
-  resetAll: () =>
+  clearHistory: async () => {
+    const { user } = get();
+    await dbClearDiagnosisHistory(user?.id);
+    set({ history: [] });
+  },
+
+  refreshHistory: async () => {
+    const { user } = get();
+    const records = await dbGetDiagnosisHistory(user?.id);
+    set({
+      history: records.map((h) => ({
+        id: h.id,
+        userId: h.user_id,
+        date: h.date,
+        time: h.time,
+        diseaseName: h.disease_name,
+        diseaseId: h.disease_id,
+        percentage: h.percentage,
+        symptomsCount: h.symptoms_count,
+        riskLevel: h.risk_level,
+        createdTimestamp: h.created_timestamp
+      }))
+    });
+  },
+
+  resetAll: async () => {
+    const { user } = get();
+    await dbClearDiagnosisHistory(user?.id);
+    await dbClearNotifications(user?.id);
     set({
       hasOnboarded: false,
       user: null,
@@ -274,6 +488,8 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
       confidenceValues: {},
       diagnosisResults: null,
       history: [],
+      notifications: [],
       offlineNotification: null
-    })
+    });
+  }
 }));

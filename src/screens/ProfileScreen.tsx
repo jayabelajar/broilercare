@@ -1,50 +1,64 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
-  Linking
+  Linking,
+  Modal,
+  TextInput,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS, FONTS } from '../constants/theme';
 import { useDiagnosisStore } from '../store/diagnosisStore';
 import { Header } from '../components/Header';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { DISEASES, SYMPTOMS } from '../data/knowledgeBase';
+
+const AVATARS = ['👨‍🌾', '👩‍🌾', '🩺', '🐥', '🐔', '🔬', '🏠', '🥼', '🐣', '🌾', '🥚', '🧑‍🔬'];
 
 export const ProfileScreen: React.FC = () => {
   const user = useDiagnosisStore((s) => s.user);
   const history = useDiagnosisStore((s) => s.history);
   const logout = useDiagnosisStore((s) => s.logout);
   const resetAll = useDiagnosisStore((s) => s.resetAll);
-  const setActiveScreen = useDiagnosisStore((s) => s.setActiveScreen);
+  const updateProfile = useDiagnosisStore((s) => s.updateProfile);
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Keluar Akun',
-      'Apakah Anda ingin keluar dari akun ini? Anda dapat masuk kembali kapan saja.',
-      [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Keluar',
-          style: 'destructive',
-          onPress: () => logout()
-        }
-      ]
-    );
+  // Edit Profile Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editName, setEditName] = useState(user?.name || '');
+  const [editFarmName, setEditFarmName] = useState(user?.farmName || '');
+  const [editAvatar, setEditAvatar] = useState(user?.avatar || '👨‍🌾');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Custom UI Action Modals
+  const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
+  const [isResetModalVisible, setIsResetModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const openEditModal = () => {
+    setEditName(user?.name || '');
+    setEditFarmName(user?.farmName || '');
+    setEditAvatar(user?.avatar || '👨‍🌾');
+    setErrorMessage(null);
+    setIsEditModalOpen(true);
   };
 
-  const handleReset = () => {
-    Alert.alert(
-      'Reset Sistem Aplikasi',
-      'Apakah Anda ingin mereset seluruh data sesi, riwayat diagnosis lokal, dan mengulang layar onboarding?',
-      [
-        { text: 'Batal', style: 'cancel' },
-        { text: 'Reset Sekarang', style: 'destructive', onPress: resetAll }
-      ]
-    );
+  const handleSaveProfile = async () => {
+    if (!editName.trim() || !editFarmName.trim()) {
+      setErrorMessage('Nama peternak dan nama peternakan wajib diisi.');
+      return;
+    }
+    setIsSaving(true);
+    const success = await updateProfile(editName.trim(), editFarmName.trim(), editAvatar);
+    setIsSaving(false);
+    if (success) {
+      setIsEditModalOpen(false);
+    } else {
+      setErrorMessage('Gagal menyimpan profil ke database lokal.');
+    }
   };
 
   const handleOpenDOI = () => {
@@ -62,19 +76,36 @@ export const ProfileScreen: React.FC = () => {
         {/* User Card */}
         <View style={styles.userCard}>
           <View style={styles.avatarWrap}>
-            <Ionicons name="person" size={32} color="#0284C7" />
+            <Text style={styles.avatarEmoji}>{user?.avatar || '👨‍🌾'}</Text>
           </View>
+
           <View style={styles.userInfo}>
             <View style={styles.userNameRow}>
-              <Text style={styles.userName}>{user?.name || 'Peternak Broiler'}</Text>
+              <Text style={styles.userName} numberOfLines={1}>
+                {user?.name || 'Peternak Broiler'}
+              </Text>
               <View style={styles.verifiedBadge}>
-                <Ionicons name="checkmark-circle" size={14} color="#0284C7" />
-                <Text style={styles.verifiedText}>Terverifikasi</Text>
+                <Ionicons name="checkmark-circle" size={13} color={COLORS.brand} />
+                <Text style={styles.verifiedText}>Terdaftar</Text>
               </View>
             </View>
-            <Text style={styles.farmName}>🏠 {user?.farmName || 'Peternakan Broiler Mandiri'}</Text>
-            <Text style={styles.userEmail}>✉️ {user?.email || 'peternak@ayamcare.id'}</Text>
+
+            <Text style={styles.farmName} numberOfLines={1}>
+              🏠 {user?.farmName || 'Peternakan Broiler Mandiri'}
+            </Text>
+            <Text style={styles.userEmail} numberOfLines={1}>
+              ✉️ {user?.email || 'peternak@ohmychick.id'}
+            </Text>
           </View>
+
+          {/* Edit Profile Button */}
+          <TouchableOpacity
+            style={styles.editBtn}
+            activeOpacity={0.8}
+            onPress={openEditModal}
+          >
+            <Ionicons name="pencil" size={14} color={COLORS.brand} />
+          </TouchableOpacity>
         </View>
 
         {/* Quick Stats Grid */}
@@ -83,134 +114,202 @@ export const ProfileScreen: React.FC = () => {
             <Text style={styles.statNumber}>{history.length}</Text>
             <Text style={styles.statLabel}>Diagnosis Selesai</Text>
           </View>
-          <View style={[styles.statBox, { backgroundColor: '#F3E8FF', borderColor: '#E9D5FF' }]}>
-            <Text style={styles.statNumber}>100%</Text>
-            <Text style={styles.statLabel}>Offline Ready</Text>
+          <View style={[styles.statBox, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}>
+            <Text style={[styles.statNumber, { color: COLORS.success }]}>SQLite</Text>
+            <Text style={styles.statLabel}>Database Lokal</Text>
           </View>
-          <View style={[styles.statBox, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
-            <Text style={styles.statNumber}>v1.0</Text>
-            <Text style={styles.statLabel}>Versi Mesin CF</Text>
+          <View style={[styles.statBox, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
+            <Text style={[styles.statNumber, { color: COLORS.brand }]}>v1.0</Text>
+            <Text style={styles.statLabel}>Mesin CF</Text>
           </View>
         </View>
 
         {/* System Specs Bento */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Spesifikasi Mesin Inferensi</Text>
+          <Text style={styles.sectionTitle}>Spesifikasi Mesin</Text>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.specItem}>
-            <View style={styles.specIconWrap}>
-              <Ionicons name="calculator-outline" size={18} color="#0284C7" />
-            </View>
-            <View style={styles.specDetails}>
-              <Text style={styles.specTitle}>Metode Certainty Factor</Text>
-              <Text style={styles.specDesc}>Formula Shortliffe & Buchanan (CF kombinasi)</Text>
-            </View>
+        <View style={styles.specsCard}>
+          <View style={styles.specRow}>
+            <Text style={styles.specLabel}>Nama Sistem:</Text>
+            <Text style={styles.specValue}>OhMyChick Expert System</Text>
           </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.specItem}>
-            <View style={styles.specIconWrap}>
-              <Ionicons name="medkit-outline" size={18} color="#8B5CF6" />
-            </View>
-            <View style={styles.specDetails}>
-              <Text style={styles.specTitle}>{DISEASES.length} Patologi Broiler</Text>
-              <Text style={styles.specDesc}>ND, IBD/Gumboro, AI, CRD, Kolera, Asites, dll.</Text>
-            </View>
+          <View style={styles.specRow}>
+            <Text style={styles.specLabel}>Algoritma:</Text>
+            <Text style={styles.specValue}>Certainty Factor (Shortliffe & Buchanan)</Text>
           </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.specItem}>
-            <View style={styles.specIconWrap}>
-              <Ionicons name="list-outline" size={18} color="#F59E0B" />
-            </View>
-            <View style={styles.specDetails}>
-              <Text style={styles.specTitle}>{SYMPTOMS.length} Indikator Gejala</Text>
-              <Text style={styles.specDesc}>Fisik, pernapasan, pencernaan, & perilaku</Text>
-            </View>
+          <View style={styles.specRow}>
+            <Text style={styles.specLabel}>Basis Patologi:</Text>
+            <Text style={styles.specValue}>{DISEASES.length} Penyakit Broiler Terdata</Text>
+          </View>
+          <View style={styles.specRow}>
+            <Text style={styles.specLabel}>Indikator Gejala:</Text>
+            <Text style={styles.specValue}>{SYMPTOMS.length} Gejala Klinis Terkategori</Text>
+          </View>
+          <View style={[styles.specRow, { borderBottomWidth: 0 }]}>
+            <Text style={styles.specLabel}>Arsitektur:</Text>
+            <Text style={styles.specValue}>100% Offline-First SQLite Storage</Text>
           </View>
         </View>
 
-        {/* Scientific Paper Card */}
+        {/* Academic Reference */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Rujukan Ilmiah Primer</Text>
+          <Text style={styles.sectionTitle}>Landasan Ilmiah</Text>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.paperBadge}>
-            <Ionicons name="school" size={13} color="#0284C7" />
-            <Text style={styles.paperBadgeText}>Jurnal Algoritma ITG (2024)</Text>
+        <TouchableOpacity
+          style={styles.academicCard}
+          activeOpacity={0.8}
+          onPress={handleOpenDOI}
+        >
+          <View style={styles.academicHeader}>
+            <View style={styles.academicBadge}>
+              <Ionicons name="school-outline" size={12} color={COLORS.brand} />
+              <Text style={styles.academicBadgeText}>Jurnal Algoritma (2024)</Text>
+            </View>
+            <Ionicons name="open-outline" size={16} color={COLORS.brand} />
           </View>
-          <Text style={styles.paperTitle}>
-            "Implementasi Metode Certainty Faktor Pada Sistem Diagnosa Penyakit Ayam Pedaging (Broiler)"
+          <Text style={styles.academicTitle}>
+            Implementasi Metode Certainty Faktor Pada Sistem Diagnosa Penyakit Ayam Pedaging (Broiler)
           </Text>
-          <Text style={styles.paperAuthors}>Penulis: Y. Agustin, F. Mulyani, & D. Sopandi</Text>
-          <Text style={styles.paperVolume}>Vol. 21 No. 2 (2024), Hal. 332-342</Text>
-
-          <TouchableOpacity style={styles.doiBtn} activeOpacity={0.8} onPress={handleOpenDOI}>
-            <Text style={styles.doiBtnText}>Akses Publikasi DOI Jurnal</Text>
-            <Ionicons name="open-outline" size={15} color="#0284C7" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Actions & Settings */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Pengaturan Akun & Data</Text>
-        </View>
-
-        <View style={styles.actionCard}>
-          <TouchableOpacity
-            style={styles.actionRow}
-            activeOpacity={0.7}
-            onPress={() => setActiveScreen('auth')}
-          >
-            <View style={styles.actionLeft}>
-              <Ionicons name="swap-horizontal-outline" size={20} color="#475569" />
-              <Text style={styles.actionText}>Ganti / Beralih Akun</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          <TouchableOpacity
-            style={styles.actionRow}
-            activeOpacity={0.7}
-            onPress={handleLogout}
-          >
-            <View style={styles.actionLeft}>
-              <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-              <Text style={[styles.actionText, { color: '#EF4444' }]}>Keluar Akun</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          <TouchableOpacity
-            style={styles.actionRow}
-            activeOpacity={0.7}
-            onPress={handleReset}
-          >
-            <View style={styles.actionLeft}>
-              <Ionicons name="refresh-circle-outline" size={20} color="#EF4444" />
-              <Text style={[styles.actionText, { color: '#EF4444' }]}>
-                Reset Seluruh Data & Onboarding
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.footerNote}>
-          <Text style={styles.footerNoteText}>
-            AyamCare Broiler v1.0.0 • Sistem Pakar Offline
+          <Text style={styles.academicAuthors}>
+            Yoga Handoko Agustin, Asri Mulyani, Pendi Sopandi — DOI: 10.33364/algoritma/v.21-2.1526
           </Text>
+        </TouchableOpacity>
+
+        {/* Action Buttons */}
+        <View style={styles.actionSection}>
+          <TouchableOpacity
+            style={styles.outlineActionBtn}
+            activeOpacity={0.7}
+            onPress={() => setIsLogoutModalVisible(true)}
+          >
+            <Ionicons name="log-out-outline" size={17} color={COLORS.muted} />
+            <Text style={styles.outlineActionText}>Keluar dari Akun</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.dangerActionBtn}
+            activeOpacity={0.7}
+            onPress={() => setIsResetModalVisible(true)}
+          >
+            <Ionicons name="refresh-outline" size={17} color={COLORS.danger} />
+            <Text style={styles.dangerActionText}>Reset Aplikasi & Database</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Edit Profile Modal */}
+      <Modal
+        visible={isEditModalOpen}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsEditModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Ubah Profil Peternak</Text>
+              <TouchableOpacity onPress={() => setIsEditModalOpen(false)}>
+                <Ionicons name="close" size={20} color={COLORS.ink} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {/* Choose 12 Avatars */}
+              <Text style={styles.modalLabel}>Pilih Avatar Karakter (12 Pilihan)</Text>
+              <View style={styles.avatarPickRow}>
+                {AVATARS.map((av) => {
+                  const isSelected = editAvatar === av;
+                  return (
+                    <TouchableOpacity
+                      key={av}
+                      style={[styles.avatarPickCircle, isSelected && styles.avatarPickCircleActive]}
+                      onPress={() => setEditAvatar(av)}
+                    >
+                      <Text style={styles.avatarPickEmoji}>{av}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Name Input */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.modalLabel}>Nama Lengkap Peternak</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={editName}
+                  onChangeText={(t) => { setEditName(t); setErrorMessage(null); }}
+                  placeholder="Nama Peternak"
+                  placeholderTextColor={COLORS.subtle}
+                />
+              </View>
+
+              {/* Farm Name Input */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.modalLabel}>Nama Usaha / Peternakan</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={editFarmName}
+                  onChangeText={(t) => { setEditFarmName(t); setErrorMessage(null); }}
+                  placeholder="Nama Peternakan"
+                  placeholderTextColor={COLORS.subtle}
+                />
+              </View>
+
+              {errorMessage && (
+                <Text style={styles.modalErrorText}>{errorMessage}</Text>
+              )}
+
+              <TouchableOpacity
+                style={[styles.saveBtn, isSaving && { opacity: 0.6 }]}
+                disabled={isSaving}
+                onPress={handleSaveProfile}
+              >
+                <Text style={styles.saveBtnText}>
+                  {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Styled Logout Confirm Modal */}
+      <ConfirmModal
+        visible={isLogoutModalVisible}
+        title="Keluar dari Akun"
+        message="Anda akan keluar dari sesi ini. Data diagnosis tetap tersimpan di database lokal."
+        icon="log-out-outline"
+        iconColor={COLORS.brand}
+        iconBg={COLORS.brandLight}
+        confirmText="Keluar"
+        cancelText="Batal"
+        isDestructive={false}
+        onConfirm={() => {
+          setIsLogoutModalVisible(false);
+          logout();
+        }}
+        onCancel={() => setIsLogoutModalVisible(false)}
+      />
+
+      {/* Styled Reset Confirm Modal */}
+      <ConfirmModal
+        visible={isResetModalVisible}
+        title="Reset Sistem Aplikasi"
+        message="Seluruh catatan diagnosis lokal, preferensi akun, dan sesi akan direset ke kondisi awal."
+        icon="refresh"
+        iconColor={COLORS.danger}
+        iconBg="#FEE2E2"
+        confirmText="Reset Sekarang"
+        cancelText="Batal"
+        isDestructive={true}
+        onConfirm={() => {
+          setIsResetModalVisible(false);
+          resetAll();
+        }}
+        onCancel={() => setIsResetModalVisible(false)}
+      />
     </View>
   );
 };
@@ -222,32 +321,37 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 20
+    paddingTop: 12,
+    paddingBottom: 28,
+    gap: 14
   },
   userCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: 24,
-    padding: 18,
+    borderRadius: 20,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#64748B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-    marginBottom: 16
+    borderColor: COLORS.line,
+    gap: 12,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2
   },
   avatarWrap: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#E0F2FE',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: COLORS.brandLight,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.brandBorder
+  },
+  avatarEmoji: {
+    fontSize: 28
   },
   userInfo: {
     flex: 1
@@ -255,198 +359,274 @@ const styles = StyleSheet.create({
   userNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 4
+    gap: 6,
+    marginBottom: 3
   },
   userName: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0F172A'
+    fontSize: 15,
+    fontFamily: FONTS.bold,
+    color: COLORS.ink
   },
   verifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E0F2FE',
+    gap: 3,
+    backgroundColor: COLORS.brandLight,
     paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    gap: 3
+    paddingVertical: 1.5,
+    borderRadius: 5
   },
   verifiedText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#0284C7'
+    fontSize: 9.5,
+    fontFamily: FONTS.bold,
+    color: COLORS.brand
   },
   farmName: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#475569',
+    fontFamily: FONTS.medium,
+    color: COLORS.inkSecondary,
     marginBottom: 2
   },
   userEmail: {
     fontSize: 11,
-    color: '#64748B'
+    fontFamily: FONTS.regular,
+    color: COLORS.muted
+  },
+  editBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: COLORS.brandLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.brandBorder
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20
+    gap: 10
   },
   statBox: {
     flex: 1,
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    alignItems: 'center'
+    borderRadius: 14,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1
   },
   statNumber: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#0F172A',
-    marginBottom: 2
+    fontSize: 16,
+    fontFamily: FONTS.extraBold,
+    color: COLORS.brand
   },
   statLabel: {
     fontSize: 10,
-    fontWeight: '600',
-    color: '#64748B',
-    textAlign: 'center'
+    fontFamily: FONTS.medium,
+    color: COLORS.muted,
+    marginTop: 2
   },
   sectionHeader: {
-    marginBottom: 10
+    marginTop: 4
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#334155',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5
+    fontSize: 14,
+    fontFamily: FONTS.bold,
+    color: COLORS.ink
   },
-  card: {
+  specsCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: 22,
-    padding: 18,
+    borderRadius: 16,
+    paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 20,
-    shadowColor: '#64748B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2
+    borderColor: COLORS.line
   },
-  specItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14
-  },
-  specIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  specDetails: {
-    flex: 1
-  },
-  specTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A'
-  },
-  specDesc: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 1
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginVertical: 12
-  },
-  paperBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#E0F2FE',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginBottom: 8
-  },
-  paperBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#0284C7'
-  },
-  paperTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A',
-    lineHeight: 18,
-    marginBottom: 6
-  },
-  paperAuthors: {
-    fontSize: 11,
-    color: '#475569',
-    marginBottom: 2
-  },
-  paperVolume: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginBottom: 12
-  },
-  doiBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F0F9FF',
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
-    borderRadius: 14,
-    paddingVertical: 10,
-    gap: 8
-  },
-  doiBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0284C7'
-  },
-  actionCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 20
-  },
-  actionRow: {
+  specRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lineSubtle
   },
-  actionLeft: {
+  specLabel: {
+    fontSize: 11.5,
+    fontFamily: FONTS.medium,
+    color: COLORS.muted
+  },
+  specValue: {
+    fontSize: 11.5,
+    fontFamily: FONTS.semiBold,
+    color: COLORS.ink,
+    maxWidth: '60%',
+    textAlign: 'right'
+  },
+  academicCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    gap: 6
+  },
+  academicHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12
+    justifyContent: 'space-between'
   },
-  actionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1E293B'
-  },
-  footerNote: {
+  academicBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 10
+    gap: 4,
+    backgroundColor: COLORS.brandLight,
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6
   },
-  footerNoteText: {
+  academicBadgeText: {
+    fontSize: 10,
+    fontFamily: FONTS.bold,
+    color: COLORS.brand
+  },
+  academicTitle: {
+    fontSize: 12.5,
+    fontFamily: FONTS.bold,
+    color: COLORS.ink,
+    lineHeight: 18
+  },
+  academicAuthors: {
     fontSize: 11,
-    color: '#94A3B8'
+    fontFamily: FONTS.regular,
+    color: COLORS.muted,
+    lineHeight: 15
+  },
+  actionSection: {
+    gap: 8,
+    marginTop: 8
+  },
+  outlineActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.surface,
+    borderRadius: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: COLORS.line
+  },
+  outlineActionText: {
+    fontSize: 13,
+    fontFamily: FONTS.bold,
+    color: COLORS.inkSecondary
+  },
+  dangerActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA'
+  },
+  dangerActionText: {
+    fontSize: 13,
+    fontFamily: FONTS.bold,
+    color: COLORS.danger
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    justifyContent: 'flex-end'
+  },
+  modalSheet: {
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: '85%',
+    gap: 14
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.line,
+    paddingBottom: 12
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontFamily: FONTS.bold,
+    color: COLORS.ink
+  },
+  modalBody: {
+    gap: 12,
+    paddingBottom: 20
+  },
+  modalLabel: {
+    fontSize: 12,
+    fontFamily: FONTS.bold,
+    color: COLORS.inkSecondary,
+    marginBottom: 4
+  },
+  avatarPickRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8
+  },
+  avatarPickCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.canvas,
+    borderWidth: 1.5,
+    borderColor: COLORS.line,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  avatarPickCircleActive: {
+    borderColor: COLORS.brand,
+    backgroundColor: COLORS.brandLight
+  },
+  avatarPickEmoji: {
+    fontSize: 22
+  },
+  inputGroup: {
+    gap: 4
+  },
+  modalInput: {
+    backgroundColor: COLORS.canvas,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+    fontSize: 13,
+    fontFamily: FONTS.medium,
+    color: COLORS.ink
+  },
+  modalErrorText: {
+    fontSize: 12,
+    fontFamily: FONTS.medium,
+    color: COLORS.danger
+  },
+  saveBtn: {
+    backgroundColor: COLORS.brand,
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginTop: 8,
+    shadowColor: COLORS.brand,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3
+  },
+  saveBtnText: {
+    fontSize: 13,
+    fontFamily: FONTS.bold,
+    color: '#FFFFFF'
   }
 });
-

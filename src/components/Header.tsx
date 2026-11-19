@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS, FONTS } from '../constants/theme';
 import { useDiagnosisStore } from '../store/diagnosisStore';
 
 interface HeaderProps {
@@ -11,38 +11,41 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
   const user = useDiagnosisStore((s) => s.user);
-  const setActiveTab = useDiagnosisStore((s) => s.setActiveTab);
+  const notifications = useDiagnosisStore((s) => s.notifications);
+  const openNotificationModal = useDiagnosisStore((s) => s.openNotificationModal);
 
   const displayName = user ? user.name.split(' ')[0] : 'Peternak';
-  const initial = displayName ? displayName.charAt(0).toUpperCase() : 'P';
+  const unreadCount = notifications.filter((n) => n.is_read === 0).length;
 
   return (
     <View style={styles.container}>
+      {/* Left Title & Subtitle (No branding icon/text) */}
       <View style={styles.left}>
-        <TouchableOpacity
-          style={styles.menuBtn}
-          activeOpacity={0.7}
-          onPress={() => setActiveTab('profil')}
-        >
-          <Ionicons name="reorder-two-outline" size={24} color={COLORS.ink} />
-        </TouchableOpacity>
-        <View>
-          <Text style={styles.greetingTitle}>
-            {title || `Halo ${displayName},`}
-          </Text>
-          <Text style={styles.greetingSub}>
-            {subtitle || (user?.farmName || 'Kawanan sehat & produktif!')}
-          </Text>
-        </View>
+        <Text style={styles.greetingTitle} numberOfLines={1}>
+          {title || `Halo, ${displayName}`}
+        </Text>
+        <Text style={styles.greetingSub} numberOfLines={1}>
+          {subtitle || (user?.farmName ? `🏠 ${user.farmName}` : 'Sistem Pakar Broiler')}
+        </Text>
       </View>
 
+      {/* Right Notification Bell */}
       <TouchableOpacity
-        style={styles.avatarBtn}
-        activeOpacity={0.8}
-        onPress={() => setActiveTab('profil')}
+        style={styles.notifBtn}
+        activeOpacity={0.7}
+        onPress={openNotificationModal}
       >
-        <View style={styles.avatarCircle}>
-          <Text style={styles.avatarText}>{initial}</Text>
+        <View style={styles.notifCircle}>
+          <Ionicons
+            name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
+            size={20}
+            color={unreadCount > 0 ? COLORS.brand : COLORS.ink}
+          />
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     </View>
@@ -55,58 +58,65 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 8,
-    backgroundColor: COLORS.canvas
+    paddingTop: 12,
+    paddingBottom: 10,
+    backgroundColor: COLORS.canvas,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lineSubtle
   },
   left: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12
-  },
-  menuBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    alignItems: 'center',
+    flex: 1,
     justifyContent: 'center'
   },
   greetingTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: FONTS.extraBold,
     color: COLORS.ink,
     letterSpacing: -0.3
   },
   greetingSub: {
-    fontSize: 11,
+    fontSize: 11.5,
     color: COLORS.muted,
-    fontWeight: '500',
-    marginTop: 1
+    fontFamily: FONTS.medium,
+    marginTop: 2
   },
-  avatarBtn: {
-    padding: 2
+  notifBtn: {
+    padding: 2,
+    marginLeft: 8
   },
-  avatarCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#3B82F6',
+  notifCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.line,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.surface,
-    shadowColor: '#2563EB',
+    position: 'relative',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
-    elevation: 3
+    elevation: 2
   },
-  avatarText: {
-    color: COLORS.surface,
-    fontSize: 16,
-    fontWeight: '800'
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: COLORS.surface
+  },
+  badgeText: {
+    fontSize: 9,
+    fontFamily: FONTS.bold,
+    color: '#FFFFFF'
   }
 });

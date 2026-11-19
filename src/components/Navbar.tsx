@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS, FONTS } from '../constants/theme';
 import { useDiagnosisStore, TabKey } from '../store/diagnosisStore';
 
 export const Navbar: React.FC = () => {
@@ -18,9 +18,9 @@ export const Navbar: React.FC = () => {
     isAction?: boolean;
   }> = [
     { key: 'beranda', label: 'Beranda', icon: 'home-outline', activeIcon: 'home' },
-    { key: 'katalog', label: 'Katalog', icon: 'book-outline', activeIcon: 'book' },
-    { key: 'diagnosis', label: 'Diagnosa', icon: 'medkit', activeIcon: 'medkit', isAction: true },
-    { key: 'riwayat', label: 'Riwayat', icon: 'bar-chart-outline', activeIcon: 'bar-chart' },
+    { key: 'katalog', label: 'Penyakit', icon: 'clipboard-outline', activeIcon: 'clipboard' },
+    { key: 'diagnosis', label: 'Diagnosa', icon: 'pulse', activeIcon: 'pulse', isAction: true },
+    { key: 'riwayat', label: 'Riwayat', icon: 'time-outline', activeIcon: 'time' },
     { key: 'profil', label: 'Profil', icon: 'person-outline', activeIcon: 'person' }
   ];
 
@@ -48,7 +48,7 @@ export const Navbar: React.FC = () => {
                 onPress={() => handleTabPress(tab)}
               >
                 <View style={styles.actionCircle}>
-                  <Ionicons name="medkit" size={18} color="#FFFFFF" />
+                  <Ionicons name="medkit" size={20} color="#FFFFFF" />
                 </View>
                 <Text style={styles.actionLabel} numberOfLines={1}>
                   {tab.label}
@@ -60,7 +60,7 @@ export const Navbar: React.FC = () => {
           return (
             <TouchableOpacity
               key={tab.key}
-              style={styles.tabItem}
+              style={[styles.tabItem, isActive && styles.tabItemActive]}
               activeOpacity={0.7}
               onPress={() => handleTabPress(tab)}
             >
@@ -68,7 +68,7 @@ export const Navbar: React.FC = () => {
                 <Ionicons
                   name={isActive ? tab.activeIcon : tab.icon}
                   size={19}
-                  color={isActive ? '#FFFFFF' : COLORS.muted}
+                  color={isActive ? COLORS.brand : COLORS.muted}
                 />
               </View>
               <Text
@@ -87,9 +87,9 @@ export const Navbar: React.FC = () => {
 
 const styles = StyleSheet.create({
   navWrapper: {
-    paddingHorizontal: 12,
-    paddingTop: 4,
-    paddingBottom: 6,
+    paddingHorizontal: 14,
+    paddingTop: 6,
+    paddingBottom: Platform.OS === 'ios' ? 12 : 8,
     backgroundColor: COLORS.canvas
   },
   floatingBar: {
@@ -97,11 +97,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    height: 60,
-    borderRadius: 24,
-    paddingHorizontal: 4,
+    height: 62,
+    borderRadius: 22,
+    paddingHorizontal: 6,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: COLORS.line,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -112,28 +112,35 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 2
+    paddingVertical: 4,
+    borderRadius: 14
+  },
+  tabItemActive: {
+    // subtle container styling
   },
   iconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center'
   },
   iconWrapActive: {
-    backgroundColor: COLORS.brandNavy // Modern high-contrast dark pill as in reference image
+    backgroundColor: COLORS.brandLight,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: COLORS.brandBorder
   },
   tabLabel: {
-    fontSize: 9.5,
-    fontWeight: '600',
+    fontSize: 10,
+    fontFamily: FONTS.medium,
     color: COLORS.muted,
     marginTop: 2,
     letterSpacing: -0.2
   },
   tabLabelActive: {
-    color: COLORS.brandNavy,
-    fontWeight: '800'
+    color: COLORS.brand,
+    fontFamily: FONTS.bold
   },
   actionTab: {
     flex: 1,
@@ -142,21 +149,21 @@ const styles = StyleSheet.create({
     paddingVertical: 2
   },
   actionCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: COLORS.brand,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: COLORS.brand,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 5
   },
   actionLabel: {
-    fontSize: 9.5,
-    fontWeight: '800',
+    fontSize: 10,
+    fontFamily: FONTS.bold,
     color: COLORS.brand,
     marginTop: 2,
     letterSpacing: -0.2

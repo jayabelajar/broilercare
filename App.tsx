@@ -1,11 +1,20 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import {
+  useFonts,
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold
+} from '@expo-google-fonts/plus-jakarta-sans';
 import { COLORS } from './src/constants/theme';
 import { useDiagnosisStore } from './src/store/diagnosisStore';
 import { Navbar } from './src/components/Navbar';
 import { NotificationBanner } from './src/components/NotificationBanner';
+import { NotificationModal } from './src/components/NotificationModal';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -19,10 +28,34 @@ import { DiseaseDetailModal } from './src/components/DiseaseDetailModal';
 import { ResearchBenchModal } from './src/components/ResearchBenchModal';
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold
+  });
+
+  const initAppDB = useDiagnosisStore((s) => s.initAppDB);
   const hasOnboarded = useDiagnosisStore((s) => s.hasOnboarded);
   const user = useDiagnosisStore((s) => s.user);
   const activeTab = useDiagnosisStore((s) => s.activeTab);
   const activeScreen = useDiagnosisStore((s) => s.activeScreen);
+  const isNotificationModalOpen = useDiagnosisStore((s) => s.isNotificationModalOpen);
+  const closeNotificationModal = useDiagnosisStore((s) => s.closeNotificationModal);
+
+  // Initialize SQLite Local Database on app startup
+  useEffect(() => {
+    initAppDB();
+  }, []);
+
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.brand} />
+      </View>
+    );
+  }
 
   // Render active main tab (5 Menus)
   const renderTabContent = () => {
@@ -82,6 +115,10 @@ export default function App() {
         <StatusBar style="dark" />
         {renderContent()}
         <NotificationBanner />
+        <NotificationModal
+          visible={isNotificationModalOpen}
+          onClose={closeNotificationModal}
+        />
         <DiseaseDetailModal />
         <ResearchBenchModal />
       </SafeAreaView>
@@ -90,6 +127,12 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: COLORS.canvas,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.canvas

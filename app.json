@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "AyamCare",
-    "slug": "ayamcare",
+    "name": "OhMyChick",
+    "slug": "ohmychick",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,7 +10,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.ayamcare.app",
+      "package": "com.ohmychick.app",
       "adaptiveIcon": {
         "backgroundColor": "#1E56A0",
         "foregroundImage": "./assets/android-icon-foreground.png"
@@ -18,6 +18,9 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-sqlite"
+    ]
   }
 }

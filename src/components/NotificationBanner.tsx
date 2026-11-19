@@ -1,7 +1,17 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+  Modal
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { COLORS, FONTS } from '../constants/theme';
 import { useDiagnosisStore } from '../store/diagnosisStore';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export const NotificationBanner: React.FC = () => {
   const offlineNotification = useDiagnosisStore((s) => s.offlineNotification);
@@ -11,7 +21,7 @@ export const NotificationBanner: React.FC = () => {
     if (offlineNotification) {
       const timer = setTimeout(() => {
         dismissNotification();
-      }, 4000);
+      }, 3500);
       return () => clearTimeout(timer);
     }
   }, [offlineNotification, dismissNotification]);
@@ -19,60 +29,102 @@ export const NotificationBanner: React.FC = () => {
   if (!offlineNotification) return null;
 
   return (
-    <View style={styles.floatingContainer}>
-      <View style={styles.banner}>
-        <View style={styles.iconWrap}>
-          <Ionicons name="cloud-offline" size={16} color="#059669" />
+    <Modal
+      transparent={true}
+      visible={!!offlineNotification}
+      animationType="fade"
+      onRequestClose={dismissNotification}
+    >
+      <View style={styles.centerOverlay}>
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={dismissNotification}
+        />
+
+        <View style={styles.centerCard}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="checkmark-circle" size={26} color={COLORS.brand} />
+          </View>
+          <View style={styles.textWrap}>
+            <Text style={styles.titleText}>Status Sistem</Text>
+            <Text style={styles.messageText}>{offlineNotification}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={dismissNotification}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons name="close" size={18} color={COLORS.muted} />
+          </TouchableOpacity>
         </View>
-        <Text style={styles.bannerText}>{offlineNotification}</Text>
-        <TouchableOpacity style={styles.closeBtn} onPress={dismissNotification}>
-          <Ionicons name="close" size={16} color="#6B7280" />
-        </TouchableOpacity>
       </View>
-    </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  floatingContainer: {
-    position: 'absolute',
-    top: 14,
-    left: 20,
-    right: 20,
-    zIndex: 999
+  centerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20
   },
-  banner: {
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0
+  },
+  centerCard: {
+    width: Math.min(SCREEN_WIDTH - 40, 360),
+    backgroundColor: COLORS.surface,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 4 },
+    gap: 12,
+    borderWidth: 1,
+    borderColor: COLORS.brandBorder,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 6
+    shadowRadius: 14,
+    elevation: 8
   },
-  iconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#D1FAE5',
+  iconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.brandLight,
     alignItems: 'center',
     justifyContent: 'center'
   },
-  bannerText: {
-    flex: 1,
+  textWrap: {
+    flex: 1
+  },
+  titleText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#065F46'
+    fontFamily: FONTS.bold,
+    color: COLORS.brand,
+    marginBottom: 2,
+    letterSpacing: 0.3
+  },
+  messageText: {
+    fontSize: 12.5,
+    fontFamily: FONTS.semiBold,
+    color: COLORS.ink,
+    lineHeight: 17
   },
   closeBtn: {
-    padding: 4
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.surfaceSubtle,
+    alignItems: 'center',
+    justifyContent: 'center'
   }
 });
-

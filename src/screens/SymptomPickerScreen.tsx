@@ -8,9 +8,27 @@ import {
   TextInput
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS, FONTS } from '../constants/theme';
 import { useDiagnosisStore } from '../store/diagnosisStore';
 import { SYMPTOMS } from '../data/knowledgeBase';
+import { Symptom } from '../core/certainty-factor/types';
+
+const CATEGORIES = [
+  'SEMUA',
+  'Pernapasan',
+  'Pencernaan',
+  'Saraf & Perilaku',
+  'Kepala & Fasial',
+  'Fisik & Performa'
+];
+
+const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  'Pernapasan': 'fitness-outline',
+  'Pencernaan': 'water-outline',
+  'Saraf & Perilaku': 'pulse-outline',
+  'Kepala & Fasial': 'eye-outline',
+  'Fisik & Performa': 'body-outline'
+};
 
 export const SymptomPickerScreen: React.FC = () => {
   const selectedSymptoms = useDiagnosisStore((s) => s.selectedSymptoms);
@@ -22,23 +40,32 @@ export const SymptomPickerScreen: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  const categories = ['SEMUA', 'Pernapasan', 'Pencernaan', 'Saraf & Perilaku', 'Kepala & Fasial', 'Fisik & Performa'];
+  // Grouped symptoms by category
+  const groupedSections = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    const categoriesToInclude =
+      selectedCategory === 'SEMUA'
+        ? ['Pernapasan', 'Pencernaan', 'Saraf & Perilaku', 'Kepala & Fasial', 'Fisik & Performa']
+        : [selectedCategory];
 
-  const filteredSymptoms = useMemo(() => {
-    let result = SYMPTOMS;
-    if (selectedCategory !== 'SEMUA') {
-      result = result.filter((s) => s.category === selectedCategory);
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      result = result.filter(
-        (s) =>
-          s.name.toLowerCase().includes(q) ||
-          s.description.toLowerCase().includes(q) ||
-          s.code.toLowerCase().includes(q)
-      );
-    }
-    return result;
+    return categoriesToInclude
+      .map((cat) => {
+        let items = SYMPTOMS.filter((s) => s.category === cat);
+        if (q) {
+          items = items.filter(
+            (s) =>
+              s.name.toLowerCase().includes(q) ||
+              s.description.toLowerCase().includes(q) ||
+              s.code.toLowerCase().includes(q)
+          );
+        }
+        return {
+          category: cat,
+          icon: CATEGORY_ICONS[cat] || 'medical-outline',
+          items
+        };
+      })
+      .filter((section) => section.items.length > 0);
   }, [selectedCategory, searchQuery]);
 
   const canProceed = selectedSymptoms.length >= 2;
@@ -47,16 +74,25 @@ export const SymptomPickerScreen: React.FC = () => {
     <View style={styles.container}>
       {/* Top Wizard Bar */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerBtn} onPress={() => setActiveScreen('main')}>
-          <Ionicons name="chevron-back" size={20} color={COLORS.ink} />
-          <Text style={styles.headerBtnText}>Batal</Text>
+        <TouchableOpacity
+          style={styles.headerBtn}
+          onPress={() => setActiveScreen('main')}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="arrow-back" size={20} color={COLORS.ink} />
         </TouchableOpacity>
+
         <View style={styles.headerCenter}>
           <Text style={styles.stepBadge}>LANGKAH 1 DARI 2</Text>
-          <Text style={styles.headerTitle}>Pemilihan Gejala Klinis</Text>
+          <Text style={styles.headerTitle}>Pilih Gejala</Text>
         </View>
-        <TouchableOpacity style={styles.headerBtn} onPress={clearSymptoms}>
-          <Text style={styles.resetText}>Reset</Text>
+
+        <TouchableOpacity
+          style={styles.headerBtn}
+          onPress={clearSymptoms}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="refresh" size={19} color={COLORS.danger} />
         </TouchableOpacity>
       </View>
 
@@ -71,11 +107,11 @@ export const SymptomPickerScreen: React.FC = () => {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        {/* Title & Hint */}
+        {/* Title & Instruction */}
         <View style={styles.headline}>
           <Text style={styles.headlineTitle}>Amati kondisi ayam di kandang</Text>
           <Text style={styles.headlineDesc}>
-            Centang semua gejala fisik dan perilaku yang teramati pada kawanan broiler Anda.
+            Centang minimal 2 gejala fisik atau perilaku yang ditemukan pada kawanan broiler Anda.
           </Text>
         </View>
 
@@ -85,7 +121,7 @@ export const SymptomPickerScreen: React.FC = () => {
           <TextInput
             style={styles.searchInput}
             placeholder="Cari gejala (contoh: ngorok, feses, napas)..."
-            placeholderTextColor={COLORS.muted}
+            placeholderTextColor={COLORS.subtle}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -96,83 +132,144 @@ export const SymptomPickerScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Category Pills */}
+        {/* Horizontal Category Filter Pills */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.pillRow}
+          contentContainerStyle={styles.categoryScroll}
         >
-          {categories.map((cat) => {
+          {CATEGORIES.map((cat) => {
             const isSelected = selectedCategory === cat;
             return (
               <TouchableOpacity
                 key={cat}
-                style={[styles.pill, isSelected && styles.pillActive]}
-                onPress={() => setSelectedCategory(cat)}
+                style={[styles.categoryPill, isSelected && styles.categoryPillActive]}
                 activeOpacity={0.7}
+                onPress={() => setSelectedCategory(cat)}
               >
-                <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>{cat}</Text>
+                <Text
+                  style={[styles.categoryPillText, isSelected && styles.categoryPillTextActive]}
+                >
+                  {cat}
+                </Text>
               </TouchableOpacity>
             );
           })}
         </ScrollView>
 
-        {/* Symptoms Checklist */}
-        <View style={styles.list}>
-          {filteredSymptoms.map((symptom) => {
-            const isChecked = selectedSymptoms.includes(symptom.id);
+        {/* Selected Count Banner */}
+        <View style={styles.selectionBanner}>
+          <View style={styles.selectionLeft}>
+            <View style={styles.checkCountCircle}>
+              <Text style={styles.checkCountText}>{selectedSymptoms.length}</Text>
+            </View>
+            <Text style={styles.selectionText}>
+              {selectedSymptoms.length >= 2
+                ? `${selectedSymptoms.length} Gejala dipilih (Syarat terpenuhi)`
+                : `${selectedSymptoms.length} Gejala dipilih (Pilih minimal 2)`}
+            </Text>
+          </View>
+          {canProceed && (
+            <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
+          )}
+        </View>
+
+        {/* Grouped Symptom Sections */}
+        {groupedSections.length === 0 ? (
+          <View style={styles.emptyWrap}>
+            <Ionicons name="alert-circle-outline" size={36} color={COLORS.subtle} />
+            <Text style={styles.emptyTitle}>Gejala Tidak Ditemukan</Text>
+            <Text style={styles.emptyDesc}>
+              Silakan cek kembali kata kunci atau pilih kategori gejala lainnya.
+            </Text>
+          </View>
+        ) : (
+          groupedSections.map((sec) => {
+            const selectedInSec = sec.items.filter((item) =>
+              selectedSymptoms.includes(item.id)
+            ).length;
+
             return (
-              <TouchableOpacity
-                key={symptom.id}
-                style={[styles.symptomItem, isChecked && styles.symptomItemActive]}
-                activeOpacity={0.75}
-                onPress={() => toggleSymptom(symptom.id)}
-              >
-                <View style={[styles.checkbox, isChecked && styles.checkboxActive]}>
-                  {isChecked && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+              <View key={sec.category} style={styles.sectionCard}>
+                {/* Section Header */}
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionHeaderLeft}>
+                    <View style={styles.sectionIconWrap}>
+                      <Ionicons name={sec.icon} size={15} color={COLORS.brand} />
+                    </View>
+                    <Text style={styles.sectionCategoryTitle}>Gejala {sec.category}</Text>
+                  </View>
+                  <View style={styles.sectionBadge}>
+                    <Text style={styles.sectionBadgeText}>
+                      {selectedInSec > 0 ? `${selectedInSec} dipilih / ` : ''}
+                      {sec.items.length} Gejala
+                    </Text>
+                  </View>
                 </View>
 
-                <View style={styles.symptomInfo}>
-                  <View style={styles.symptomMeta}>
-                    <Text style={styles.symptomCode}>{symptom.code}</Text>
-                    <Text style={styles.symptomCat}>• {symptom.category}</Text>
-                  </View>
-                  <Text style={[styles.symptomName, isChecked && styles.symptomNameActive]}>
-                    {symptom.name}
-                  </Text>
-                  <Text style={styles.symptomDesc} numberOfLines={2}>
-                    {symptom.description}
-                  </Text>
+                {/* Items in Category */}
+                <View style={styles.sectionItemsList}>
+                  {sec.items.map((symptom: Symptom) => {
+                    const isChecked = selectedSymptoms.includes(symptom.id);
+
+                    return (
+                      <TouchableOpacity
+                        key={symptom.id}
+                        style={[styles.symptomItem, isChecked && styles.symptomItemChecked]}
+                        activeOpacity={0.7}
+                        onPress={() => toggleSymptom(symptom.id)}
+                      >
+                        <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
+                          {isChecked && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                        </View>
+
+                        <View style={styles.symptomInfo}>
+                          <View style={styles.codeRow}>
+                            <View style={styles.codePill}>
+                              <Text style={styles.codePillText}>{symptom.code}</Text>
+                            </View>
+                            {isChecked && (
+                              <View style={styles.selectedPill}>
+                                <Text style={styles.selectedPillText}>Dipilih</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.symptomName}>{symptom.name}</Text>
+                          {symptom.description ? (
+                            <Text style={styles.symptomDesc} numberOfLines={2}>
+                              {symptom.description}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
-              </TouchableOpacity>
+              </View>
             );
-          })}
-        </View>
+          })
+        )}
       </ScrollView>
 
-      {/* Responsive Bottom Floating Bar (Inside Safe Area Flow) */}
+      {/* Persistent Bottom Action Bar */}
       <View style={styles.bottomBar}>
-        <View style={styles.bottomLeft}>
-          <Text style={styles.counterText}>{selectedSymptoms.length} Gejala Dipilih</Text>
-          <Text style={styles.counterSub}>
-            {canProceed ? 'Siap melanjutkan' : 'Pilih minimal 2 gejala'}
+        <View style={styles.bottomInfo}>
+          <Text style={styles.bottomSelectedCount}>
+            {selectedSymptoms.length} Gejala Terpilih
+          </Text>
+          <Text style={styles.bottomHint}>
+            {canProceed ? 'Siap ke penentuan skala' : 'Pilih minimal 2 gejala'}
           </Text>
         </View>
 
         <TouchableOpacity
-          style={[styles.nextBtn, !canProceed && styles.nextBtnDisabled]}
+          style={[styles.proceedBtn, !canProceed && styles.proceedBtnDisabled]}
           disabled={!canProceed}
           activeOpacity={0.85}
           onPress={() => setActiveScreen('diagnosis_confidence')}
         >
-          <Text style={[styles.nextBtnText, !canProceed && styles.nextBtnTextDisabled]}>
-            Lanjut ke Bobot CF
-          </Text>
-          <Ionicons
-            name="arrow-forward"
-            size={16}
-            color={canProceed ? '#FFFFFF' : COLORS.muted}
-          />
+          <Text style={styles.proceedBtnText}>Lanjutkan</Text>
+          <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
     </View>
@@ -189,43 +286,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.line
+    paddingTop: 12,
+    paddingBottom: 10,
+    backgroundColor: COLORS.surface
   },
   headerBtn: {
-    flexDirection: 'row',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surfaceSubtle,
     alignItems: 'center',
-    minWidth: 50
-  },
-  headerBtnText: {
-    fontSize: 12,
-    color: COLORS.ink,
-    fontWeight: '600'
-  },
-  resetText: {
-    fontSize: 12,
-    color: COLORS.danger,
-    fontWeight: '700'
+    justifyContent: 'center'
   },
   headerCenter: {
     alignItems: 'center'
   },
   stepBadge: {
-    fontSize: 9,
-    fontWeight: '800',
+    fontSize: 9.5,
+    fontFamily: FONTS.bold,
     color: COLORS.brand,
     letterSpacing: 0.5
   },
   headerTitle: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 15,
+    fontFamily: FONTS.bold,
     color: COLORS.ink
   },
   progressBarTrack: {
     height: 3,
-    backgroundColor: '#E2E8F0'
+    backgroundColor: COLORS.line,
+    width: '100%'
   },
   progressBarFill: {
     height: '100%',
@@ -235,173 +325,293 @@ const styles = StyleSheet.create({
     flex: 1
   },
   scroll: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 14,
     paddingBottom: 24,
     gap: 12
   },
   headline: {
-    gap: 2
+    marginBottom: 4
   },
   headlineTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: COLORS.ink
+    fontSize: 17,
+    fontFamily: FONTS.bold,
+    color: COLORS.ink,
+    marginBottom: 3
   },
   headlineDesc: {
-    fontSize: 11.5,
+    fontSize: 12,
+    fontFamily: FONTS.regular,
     color: COLORS.muted,
-    lineHeight: 16
+    lineHeight: 18
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 14,
     borderWidth: 1,
     borderColor: COLORS.line,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    height: 44,
     gap: 8
   },
   searchInput: {
     flex: 1,
-    fontSize: 12.5,
-    color: COLORS.ink,
-    padding: 0
+    fontSize: 13,
+    fontFamily: FONTS.medium,
+    color: COLORS.ink
   },
-  pillRow: {
-    gap: 6,
-    paddingVertical: 4
+  categoryScroll: {
+    gap: 8,
+    paddingVertical: 2
   },
-  pill: {
+  categoryPill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.line
   },
-  pillActive: {
-    backgroundColor: COLORS.brandNavy,
-    borderColor: COLORS.brandNavy
+  categoryPillActive: {
+    backgroundColor: COLORS.brandLight,
+    borderColor: COLORS.brandBorder
   },
-  pillText: {
-    fontSize: 11,
-    fontWeight: '600',
+  categoryPillText: {
+    fontSize: 11.5,
+    fontFamily: FONTS.medium,
     color: COLORS.muted
   },
-  pillTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '700'
+  categoryPillTextActive: {
+    color: COLORS.brand,
+    fontFamily: FONTS.bold
   },
-  list: {
-    gap: 10
-  },
-  symptomItem: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 18,
-    padding: 14,
+  selectionBanner: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.brandLight,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: COLORS.brandBorder
+  },
+  selectionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  checkCountCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: COLORS.brand,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  checkCountText: {
+    fontSize: 11,
+    fontFamily: FONTS.bold,
+    color: '#FFFFFF'
+  },
+  selectionText: {
+    fontSize: 11.5,
+    fontFamily: FONTS.bold,
+    color: COLORS.brand
+  },
+  sectionCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.canvas,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.line
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  sectionIconWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    backgroundColor: COLORS.brandLight,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  sectionCategoryTitle: {
+    fontSize: 13,
+    fontFamily: FONTS.bold,
+    color: COLORS.ink
+  },
+  sectionBadge: {
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.line
   },
-  symptomItemActive: {
-    borderColor: COLORS.brand,
-    backgroundColor: COLORS.bentoBlue
+  sectionBadgeText: {
+    fontSize: 10,
+    fontFamily: FONTS.medium,
+    color: COLORS.muted
+  },
+  sectionItemsList: {
+    padding: 10,
+    gap: 8
+  },
+  symptomItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    gap: 12
+  },
+  symptomItemChecked: {
+    backgroundColor: COLORS.brandLight,
+    borderColor: COLORS.brandBorder
   },
   checkbox: {
     width: 22,
     height: 22,
     borderRadius: 7,
-    borderWidth: 2,
-    borderColor: '#CBD5E1',
+    borderWidth: 1.5,
+    borderColor: COLORS.muted,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2
   },
-  checkboxActive: {
+  checkboxChecked: {
     backgroundColor: COLORS.brand,
     borderColor: COLORS.brand
   },
   symptomInfo: {
     flex: 1
   },
-  symptomMeta: {
+  codeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 2
+    marginBottom: 3
   },
-  symptomCode: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: COLORS.brandDark
+  codePill: {
+    backgroundColor: COLORS.surfaceSubtle,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 5
   },
-  symptomCat: {
-    fontSize: 10,
-    color: COLORS.muted
+  codePillText: {
+    fontSize: 9.5,
+    fontFamily: FONTS.bold,
+    color: COLORS.inkSecondary
+  },
+  selectedPill: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 5
+  },
+  selectedPillText: {
+    fontSize: 9.5,
+    fontFamily: FONTS.bold,
+    color: COLORS.brand
   },
   symptomName: {
     fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.ink
-  },
-  symptomNameActive: {
-    color: COLORS.brandDark
+    fontFamily: FONTS.bold,
+    color: COLORS.ink,
+    lineHeight: 18
   },
   symptomDesc: {
     fontSize: 11,
+    fontFamily: FONTS.regular,
     color: COLORS.muted,
     marginTop: 2,
-    lineHeight: 15
+    lineHeight: 16
+  },
+  emptyWrap: {
+    alignItems: 'center',
+    paddingVertical: 40
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontFamily: FONTS.bold,
+    color: COLORS.ink,
+    marginTop: 8
+  },
+  emptyDesc: {
+    fontSize: 11.5,
+    fontFamily: FONTS.regular,
+    color: COLORS.muted,
+    textAlign: 'center',
+    marginTop: 2
   },
   bottomBar: {
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.line,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: COLORS.surface,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 8
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.line
   },
-  bottomLeft: {
-    gap: 1
+  bottomInfo: {
+    flex: 1
   },
-  counterText: {
+  bottomSelectedCount: {
     fontSize: 13,
-    fontWeight: '800',
-    color: COLORS.brand
+    fontFamily: FONTS.bold,
+    color: COLORS.ink
   },
-  counterSub: {
-    fontSize: 10,
+  bottomHint: {
+    fontSize: 11,
+    fontFamily: FONTS.regular,
     color: COLORS.muted
   },
-  nextBtn: {
-    backgroundColor: COLORS.brandNavy,
+  proceedBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.brand,
     paddingHorizontal: 18,
-    paddingVertical: 11,
-    borderRadius: 16,
-    gap: 6
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: COLORS.brand,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3
   },
-  nextBtnDisabled: {
-    backgroundColor: '#E2E8F0'
+  proceedBtnDisabled: {
+    backgroundColor: COLORS.subtle,
+    shadowOpacity: 0,
+    elevation: 0
   },
-  nextBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
+  proceedBtnText: {
+    fontSize: 13,
+    fontFamily: FONTS.bold,
     color: '#FFFFFF'
-  },
-  nextBtnTextDisabled: {
-    color: COLORS.muted
   }
 });

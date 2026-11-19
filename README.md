@@ -1,6 +1,6 @@
-# OhMyChicken — Sistem Pakar Diagnosis Penyakit Ayam Broiler (Certainty Factor)
+# OhMyChick — Sistem Pakar Diagnosis Penyakit Ayam Broiler (Certainty Factor)
 
-Aplikasi sistem pakar cerdas berbasis *Offline-First* untuk membantu peternak ayam broiler mendeteksi dan mengidentifikasi penyakit kawanan secara cepat dan terukur menggunakan metode **Certainty Factor (CF)**.
+Aplikasi sistem pakar cerdas berbasis *Offline-First* dengan penyimpanan lokal **SQLite** untuk membantu peternak ayam broiler mendeteksi dan mengidentifikasi penyakit kawanan secara cepat dan terukur menggunakan metode **Certainty Factor (CF)**.
 
 Aplikasi ini dikembangkan berdasarkan spesifikasi teknis `PRD.MD` dan berlandaskan penelitian primer:
 > **Yoga Handoko Agustin, Asri Mulyani, Pendi Sopandi (2024)**  
@@ -12,22 +12,25 @@ Aplikasi ini dikembangkan berdasarkan spesifikasi teknis `PRD.MD` dan berlandask
 
 ## 🎨 Tampilan & Branding UI
 
-Sesuai permintaan:
-- **Branding:** `AyamCare` (menggantikan draft awal BroilerCare).
-- **Nuansa Warna:** **Nuansa Biru (Medical & Veterinary Blue)**
-  - Primary Brand: `#1E56A0` (Royal Navy Blue)
-  - Brand Dark: `#163E75`
-  - Brand Light: `#EFF6FF` / `#EBF3FC`
-  - Accent: `#0284C7` (Sky Cyan)
-  - Canvas: `#F4F7FB`
-  - Ink: `#0F172A`
-- **Fondasi UI:** Mengadopsi arsitektur responsif mobile container dari `UI.html` dengan peningkatan fitur:
-  - 13 Penyakit Broiler Terdaftar (`P01` s.d. `P13`)
-  - 40 Gejala Klinis Terkategori (`G01` s.d. `G40`) dalam 5 Kategori (Pernapasan, Pencernaan, Saraf & Perilaku, Kepala & Fasial, Fisik & Performa)
-  - Panel Interaktif **"Uji 10 Sampel Jurnal" (Tabel 6)** untuk memverifikasi langsung akurasi diagnosis sistem terhadap data kasus historis.
-  - Perhitungan matematis transparan: menampilkan rincian tahapan kombinasi $CF_{user} \times CF_{pakar}$ dan $CF_{combine}$.
-  - Riwayat diagnosis offline tersimpan di *LocalStorage*.
-  - Modal detail penyakit lengkap dengan etiologi patogen, pencegahan, dan pengobatan darurat.
+Sesuai pembaruan terkini:
+- **Branding:** `OhMyChick`
+- **Typography:** **Plus Jakarta Sans** di seluruh layar aplikasi.
+- **Nuansa Warna:** **Medical & Veterinary Royal Blue**
+  - Primary Brand: `#2563EB`
+  - Brand Dark: `#1D4ED8`
+  - Brand Light: `#EFF6FF`
+  - Brand Accent: `#0284C7`
+  - Canvas: `#F8FAFC`
+  - Surface: `#FFFFFF`
+  - Ink / Text: `#0F172A`
+- **Fitur & Peningkatan Antarmuka:**
+  - **Autentikasi Nyata SQLite:** Form login & register terhubung langsung ke basis data lokal SQLite (`users` table).
+  - **Sistem Notifikasi Pintar:** Ikon notifikasi di header menggantikan profil, dengan badge unread otomatis setiap kali diagnosis selesai.
+  - **Floating Navbar Modern:** Efek sorot aktif modern (pill soft blue `#EFF6FF`), menu katalog berganti nama menjadi **Penyakit**.
+  - **Katalog Penyakit Interaktif:** Filter risiko (Kritis, Tinggi, Sedang), bilah pencarian collapsible otomatis saat digulir.
+  - **Pemilihan Gejala Terkategori:** Pengelompokan gejala klinis berdasarkan organ tubuh (Pernapasan, Pencernaan, Saraf & Perilaku, Kepala & Fasial, Fisik & Performa).
+  - **Riwayat Real-Time SQLite:** Sinkron dengan basis data, dilengkapi filter waktu (Hari Ini, 7 Hari, Bulan Ini, Semua) dan pencarian aktif.
+  - **Profil Peternak Dinamis:** Pengguna dapat mengganti nama, nama usaha peternakan, serta memilih avatar avatar karakter.
 
 ---
 

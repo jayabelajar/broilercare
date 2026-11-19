@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS, FONTS } from '../constants/theme';
 import { useDiagnosisStore } from '../store/diagnosisStore';
+import { SYMPTOMS } from '../data/knowledgeBase';
 
 export const DiagnosisResultScreen: React.FC = () => {
   const diagnosisResults = useDiagnosisStore((s) => s.diagnosisResults);
@@ -17,11 +18,14 @@ export const DiagnosisResultScreen: React.FC = () => {
       <View style={styles.container}>
         <View style={styles.emptyContainer}>
           <Ionicons name="alert-circle-outline" size={48} color={COLORS.warning} />
-          <Text style={styles.emptyTitle}>Bukti Klinis Belum Cukup</Text>
+          <Text style={styles.emptyTitle}>Bukti Gejala Belum Cukup</Text>
           <Text style={styles.emptyDesc}>
-            Gejala yang dipilih tidak cocok secara signifikan dengan basis aturan patologi broiler manapun. Harap konsultasikan dengan dokter hewan.
+            Kombinasi gejala yang dipilih belum mencukupi untuk mendeteksi patologi broiler tertentu secara signifikan.
           </Text>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => setActiveScreen('diagnosis_symptoms')}>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={() => setActiveScreen('diagnosis_symptoms')}
+          >
             <Text style={styles.primaryBtnText}>Ulangi Pilih Gejala</Text>
           </TouchableOpacity>
         </View>
@@ -35,7 +39,7 @@ export const DiagnosisResultScreen: React.FC = () => {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Hasil Diagnosis AyamCare: Terindikasi ${primary.disease.name} dengan kepastian ${primary.percentage}% (Metode Certainty Factor).`
+        message: `Hasil Diagnosis OhMyChick: Kawanan terindikasi ${primary.disease.name} dengan kepastian ${primary.percentage}% (Metode Certainty Factor Shortliffe).`
       });
     } catch (e) {
       // Ignored
@@ -46,10 +50,16 @@ export const DiagnosisResultScreen: React.FC = () => {
     <View style={styles.container}>
       {/* Top Bar */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerBtn} onPress={() => { setActiveTab('beranda'); setActiveScreen('main'); }}>
+        <TouchableOpacity
+          style={styles.headerBtn}
+          onPress={() => {
+            setActiveTab('beranda');
+            setActiveScreen('main');
+          }}
+        >
           <Ionicons name="arrow-back" size={20} color={COLORS.ink} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>HASIL DIAGNOSIS AYAMCARE</Text>
+        <Text style={styles.headerTitle}>HASIL DIAGNOSIS OHMYCHICK</Text>
         <TouchableOpacity style={styles.headerBtn} onPress={handleShare}>
           <Ionicons name="share-social-outline" size={20} color={COLORS.brand} />
         </TouchableOpacity>
@@ -59,10 +69,10 @@ export const DiagnosisResultScreen: React.FC = () => {
         {/* Primary Match Card */}
         <View style={styles.primaryCard}>
           <View style={styles.primaryTop}>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, paddingRight: 8 }}>
               <View style={styles.matchBadge}>
                 <Ionicons name="checkmark-circle" size={12} color={COLORS.brand} />
-                <Text style={styles.matchBadgeText}>INDIKASI PALING KUAT</Text>
+                <Text style={styles.matchBadgeText}>Indikasi Utama</Text>
               </View>
               <Text style={styles.diseaseName}>{primary.disease.name}</Text>
               <Text style={styles.diseaseLatin}>{primary.disease.latinName}</Text>
@@ -81,7 +91,7 @@ export const DiagnosisResultScreen: React.FC = () => {
           <View style={styles.primaryFooter}>
             <View style={styles.footerRule}>
               <Ionicons name="hardware-chip-outline" size={14} color={COLORS.brand} />
-              <Text style={styles.footerRuleText}>Shortliffe & Buchanan Rule</Text>
+              <Text style={styles.footerRuleText}>Shortliffe Deterministic Rule</Text>
             </View>
             <Text style={styles.footerCount}>{primary.matchedRules.length} gejala cocok</Text>
           </View>
@@ -96,7 +106,7 @@ export const DiagnosisResultScreen: React.FC = () => {
           >
             <View style={styles.accordionTitleRow}>
               <Ionicons name="calculator-outline" size={18} color={COLORS.brand} />
-              <Text style={styles.cardTitle}>Rincian Perhitungan Matematis</Text>
+              <Text style={styles.cardTitle}>Rincian Hitungan</Text>
             </View>
             <Ionicons
               name={isCalcExpanded ? 'chevron-up' : 'chevron-down'}
@@ -107,110 +117,87 @@ export const DiagnosisResultScreen: React.FC = () => {
 
           {isCalcExpanded && (
             <View style={styles.accordionBody}>
-              <Text style={styles.formulaText}>
-                Rumus sekuensial: CF_comb = CF1 + CF2 * (1 - CF1)
+              <Text style={styles.formulaDesc}>
+                Formula: CF[H, E] = CF[pakar] × CF[user]. Kombinasi dihitung berantai menggunakan aturan Shortliffe & Buchanan (1975).
               </Text>
-              <View style={styles.stepsBox}>
-                {primary.steps.map((step, idx) => (
-                  <Text key={idx} style={styles.stepLine}>
-                    {step}
-                  </Text>
-                ))}
-                <Text style={styles.stepFinal}>
-                  Skor Akhir: {primary.cfScore.toFixed(4)} &rarr; {primary.percentage}%
-                </Text>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.th, { flex: 2 }]}>Gejala Terobservasi</Text>
+                <Text style={[styles.th, { flex: 1, textAlign: 'center' }]}>Pakar</Text>
+                <Text style={[styles.th, { flex: 1, textAlign: 'center' }]}>User</Text>
+                <Text style={[styles.th, { flex: 1, textAlign: 'right' }]}>CF[H,E]</Text>
               </View>
+              {primary.matchedRules.map((rule, idx) => {
+                const sObj = SYMPTOMS.find((s) => s.id === rule.symptomId);
+                return (
+                  <View key={idx} style={styles.tableRow}>
+                    <Text style={[styles.td, { flex: 2 }]} numberOfLines={2}>
+                      {sObj ? `${sObj.code} - ${sObj.name}` : rule.symptomId}
+                    </Text>
+                    <Text style={[styles.td, { flex: 1, textAlign: 'center' }]}>{rule.cfExpert}</Text>
+                    <Text style={[styles.td, { flex: 1, textAlign: 'center' }]}>{rule.cfUser}</Text>
+                    <Text style={[styles.tdBold, { flex: 1, textAlign: 'right' }]}>
+                      {rule.cfCalculated.toFixed(2)}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
           )}
         </View>
 
-        {/* Differential Diagnoses */}
+        {/* Recommendations Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeaderWithIcon}>
+            <Ionicons name="medkit-outline" size={18} color={COLORS.brand} />
+            <Text style={styles.cardTitle}>Penanganan Medis</Text>
+          </View>
+          <Text style={styles.sectionBodyText}>{primary.disease.treatment}</Text>
+
+          <View style={[styles.cardHeaderWithIcon, { marginTop: 14 }]}>
+            <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.success} />
+            <Text style={styles.cardTitle}>Pencegahan Biosekuriti</Text>
+          </View>
+          <Text style={styles.sectionBodyText}>{primary.disease.prevention}</Text>
+        </View>
+
+        {/* Differentials */}
         {differentials.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>DIFERENSIAL DIAGNOSIS (ALTERNATIF LAIN)</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Diagnosa Banding</Text>
             <View style={styles.diffList}>
-              {differentials.map((item) => (
-                <TouchableOpacity
-                  key={item.disease.id}
-                  style={styles.diffItem}
-                  activeOpacity={0.7}
-                  onPress={() => openDiseaseDetail(item.disease)}
-                >
-                  <View>
-                    <Text style={styles.diffName}>{item.disease.name}</Text>
-                    <Text style={styles.diffSub}>{item.matchedRules.length} gejala terindikasi</Text>
+              {differentials.map((diff, i) => (
+                <View key={i} style={styles.diffRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.diffName}>{diff.disease.name}</Text>
+                    <Text style={styles.diffLatin}>{diff.disease.latinName}</Text>
                   </View>
-                  <View style={styles.diffBadge}>
-                    <Text style={styles.diffBadgeText}>{item.percentage}%</Text>
+                  <View style={styles.diffPctBadge}>
+                    <Text style={styles.diffPctText}>{diff.percentage}%</Text>
                   </View>
-                </TouchableOpacity>
+                </View>
               ))}
             </View>
           </View>
         )}
 
-        {/* Matched Symptoms Detail */}
-        <View style={styles.card}>
-          <View style={styles.cardTitleRow}>
-            <Ionicons name="checkmark-done-circle-outline" size={18} color={COLORS.brand} />
-            <Text style={styles.cardTitle}>Gejala Teridentifikasi pada Penyakit Ini</Text>
-          </View>
-          <View style={styles.symptomsDetailList}>
-            {primary.matchedRules.map((rule, idx) => (
-              <View key={idx} style={styles.symptomDetailRow}>
-                <Text style={styles.symptomDetailName}>
-                  {rule.symptomId} (CF User: {rule.cfUser})
-                </Text>
-                <View style={styles.cfCalcBadge}>
-                  <Text style={styles.cfCalcText}>CF: {rule.cfCalculated.toFixed(2)}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Action Recommendations */}
-        <View style={styles.card}>
-          <View style={styles.cardTitleRow}>
-            <Ionicons name="clipboard-outline" size={18} color={COLORS.brand} />
-            <Text style={styles.cardTitle}>Protokol Tindakan & Penanganan Cepat</Text>
-          </View>
-          <View style={styles.recList}>
-            <Text style={styles.recItem}>• <Text style={styles.boldText}>Tindakan darurat:</Text> {primary.disease.treatment}</Text>
-            <Text style={styles.recItem}>• <Text style={styles.boldText}>Biosekuriti lingkungan:</Text> {primary.disease.prevention}</Text>
-            <Text style={styles.recItem}>• Segera pisahkan ayam dengan gejala terberat ke kandang karantina isolasi.</Text>
-            <Text style={styles.recItem}>• Disinfeksi tandon air minum, bersihkan nipple line, dan ganti sekam lembap.</Text>
-          </View>
-        </View>
-
-        {/* Medical Disclaimer */}
-        <View style={styles.disclaimerBox}>
-          <Ionicons name="warning-outline" size={20} color={COLORS.warning} />
-          <Text style={styles.disclaimerText}>
-            <Text style={styles.boldText}>Perhatian Klinis: </Text>
-            Hasil diagnosis AyamCare berbasis inferensi komputer Certainty Factor. Untuk konfirmasi pasti dan pemberian antibiotik keras berjadwal, selalu konsultasikan dengan dokter hewan atau dinas peternakan setempat.
-          </Text>
-        </View>
-
-        {/* Bottom Actions */}
-        <View style={styles.actionCol}>
+        {/* Action Buttons */}
+        <View style={styles.actionRow}>
           <TouchableOpacity
-            style={styles.repeatBtn}
-            activeOpacity={0.85}
-            onPress={() => setActiveScreen('diagnosis_symptoms')}
+            style={styles.detailBtn}
+            onPress={() => openDiseaseDetail(primary.disease)}
           >
-            <Ionicons name="refresh-outline" size={18} color={COLORS.surface} />
-            <Text style={styles.repeatBtnText}>Ulangi Sesi Diagnosis Baru</Text>
+            <Ionicons name="information-circle-outline" size={16} color={COLORS.brand} />
+            <Text style={styles.detailBtnText}>Buka Detail Penyakit</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.backHomeBtn}
+            style={styles.finishBtn}
             onPress={() => {
               setActiveTab('beranda');
               setActiveScreen('main');
             }}
           >
-            <Text style={styles.backHomeBtnText}>Kembali ke Beranda</Text>
+            <Text style={styles.finishBtnText}>Selesai & Ke Beranda</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -228,120 +215,135 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 10,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.line
   },
   headerBtn: {
-    padding: 4
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surfaceSubtle,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   headerTitle: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 12,
+    fontFamily: FONTS.bold,
     color: COLORS.ink,
     letterSpacing: 0.5
   },
   scroll: {
     padding: 16,
     gap: 14,
-    paddingBottom: 40
+    paddingBottom: 32
   },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
-    gap: 12
+    padding: 24
   },
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.ink
+    fontSize: 17,
+    fontFamily: FONTS.bold,
+    color: COLORS.ink,
+    marginTop: 12,
+    marginBottom: 6
   },
   emptyDesc: {
-    fontSize: 12,
+    fontSize: 13,
+    fontFamily: FONTS.regular,
     color: COLORS.muted,
     textAlign: 'center',
-    lineHeight: 18
+    lineHeight: 20,
+    marginBottom: 20
   },
   primaryBtn: {
     backgroundColor: COLORS.brand,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 8
+    borderRadius: 12
   },
   primaryBtnText: {
-    color: COLORS.surface,
-    fontWeight: '700',
-    fontSize: 13
+    fontSize: 13,
+    fontFamily: FONTS.bold,
+    color: '#FFFFFF'
   },
   primaryCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 18,
-    padding: 18,
-    borderWidth: 2,
-    borderColor: '#BFDBFE',
-    gap: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.brandBorder,
     shadowColor: COLORS.brand,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
     elevation: 3
   },
   primaryTop: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: 8
+    alignItems: 'flex-start',
+    marginBottom: 12
   },
   matchBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
     backgroundColor: COLORS.brandLight,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 20,
+    borderRadius: 6,
     alignSelf: 'flex-start',
-    gap: 4,
     marginBottom: 6
   },
   matchBadgeText: {
-    fontSize: 9,
-    fontWeight: '800',
+    fontSize: 9.5,
+    fontFamily: FONTS.bold,
     color: COLORS.brand,
     letterSpacing: 0.5
   },
   diseaseName: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 17,
+    fontFamily: FONTS.extraBold,
     color: COLORS.ink
   },
   diseaseLatin: {
-    fontSize: 11,
+    fontSize: 12,
+    fontFamily: FONTS.medium,
     fontStyle: 'italic',
     color: COLORS.muted,
-    marginTop: 2
+    marginTop: 1
   },
   pctWrap: {
-    alignItems: 'flex-end'
+    alignItems: 'flex-end',
+    backgroundColor: COLORS.brandLight,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.brandBorder
   },
   pctText: {
-    fontSize: 28,
-    fontWeight: '900',
+    fontSize: 22,
+    fontFamily: FONTS.extraBold,
     color: COLORS.brand
   },
   pctSub: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: COLORS.muted
+    fontSize: 9.5,
+    fontFamily: FONTS.medium,
+    color: COLORS.brandDark
   },
   progressTrack: {
     height: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: COLORS.surfaceSubtle,
     borderRadius: 4,
-    overflow: 'hidden'
+    overflow: 'hidden',
+    marginBottom: 12
   },
   progressFill: {
     height: '100%',
@@ -353,41 +355,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: COLORS.line,
+    borderTopColor: COLORS.lineSubtle,
     paddingTop: 10
   },
   footerRule: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4
+    gap: 5
   },
   footerRuleText: {
-    fontSize: 10,
-    color: COLORS.muted,
-    fontWeight: '500'
+    fontSize: 11,
+    fontFamily: FONTS.medium,
+    color: COLORS.muted
   },
   footerCount: {
     fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.ink
+    fontFamily: FONTS.bold,
+    color: COLORS.brand
   },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
     borderColor: COLORS.line,
-    gap: 10
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1
   },
-  cardTitleRow: {
+  cardHeaderWithIcon: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6
+    gap: 8,
+    marginBottom: 6
   },
   cardTitle: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 14,
+    fontFamily: FONTS.bold,
     color: COLORS.ink
+  },
+  sectionBodyText: {
+    fontSize: 12.5,
+    fontFamily: FONTS.regular,
+    color: COLORS.inkSecondary,
+    lineHeight: 18
   },
   accordionHeader: {
     flexDirection: 'row',
@@ -397,172 +410,123 @@ const styles = StyleSheet.create({
   accordionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6
-  },
-  accordionBody: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.line,
-    paddingTop: 8,
-    gap: 6
-  },
-  formulaText: {
-    fontSize: 10,
-    fontFamily: 'monospace',
-    color: COLORS.muted
-  },
-  stepsBox: {
-    backgroundColor: '#F8FAFC',
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    gap: 4
-  },
-  stepLine: {
-    fontSize: 9,
-    fontFamily: 'monospace',
-    color: COLORS.ink
-  },
-  stepFinal: {
-    fontSize: 10,
-    fontFamily: 'monospace',
-    fontWeight: '700',
-    color: COLORS.brand,
-    marginTop: 4,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.line,
-    paddingTop: 4
-  },
-  section: {
-    gap: 6
-  },
-  sectionTitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: COLORS.muted,
-    letterSpacing: 0.5
-  },
-  diffList: {
     gap: 8
   },
-  diffItem: {
-    backgroundColor: COLORS.surface,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
+  accordionBody: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.lineSubtle,
+    paddingTop: 10
   },
-  diffName: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.ink
-  },
-  diffSub: {
-    fontSize: 10,
-    color: COLORS.muted,
-    marginTop: 2
-  },
-  diffBadge: {
-    backgroundColor: COLORS.brandLight,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6
-  },
-  diffBadgeText: {
+  formulaDesc: {
     fontSize: 11,
-    fontWeight: '800',
+    fontFamily: FONTS.regular,
+    color: COLORS.muted,
+    lineHeight: 16,
+    marginBottom: 10
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surfaceSubtle,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginBottom: 4
+  },
+  th: {
+    fontSize: 10,
+    fontFamily: FONTS.bold,
+    color: COLORS.inkSecondary
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lineSubtle
+  },
+  td: {
+    fontSize: 10.5,
+    fontFamily: FONTS.regular,
+    color: COLORS.inkSecondary
+  },
+  tdBold: {
+    fontSize: 10.5,
+    fontFamily: FONTS.bold,
     color: COLORS.brand
   },
-  symptomsDetailList: {
-    gap: 6
+  diffList: {
+    marginTop: 8,
+    gap: 8
   },
-  symptomDetailRow: {
+  diffRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9'
+    borderBottomColor: COLORS.lineSubtle
   },
-  symptomDetailName: {
-    fontSize: 11,
-    color: COLORS.ink,
-    flex: 1
-  },
-  cfCalcBadge: {
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4
-  },
-  cfCalcText: {
-    fontSize: 10,
-    fontFamily: 'monospace',
-    fontWeight: '700',
-    color: COLORS.brand
-  },
-  recList: {
-    gap: 6
-  },
-  recItem: {
-    fontSize: 11,
-    color: '#475569',
-    lineHeight: 16
-  },
-  boldText: {
-    fontWeight: '700',
+  diffName: {
+    fontSize: 12.5,
+    fontFamily: FONTS.bold,
     color: COLORS.ink
   },
-  disclaimerBox: {
-    backgroundColor: '#FEF3C7',
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
+  diffLatin: {
+    fontSize: 11,
+    fontFamily: FONTS.regular,
+    fontStyle: 'italic',
+    color: COLORS.muted
+  },
+  diffPctBadge: {
+    backgroundColor: COLORS.surfaceSubtle,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8
+  },
+  diffPctText: {
+    fontSize: 11.5,
+    fontFamily: FONTS.bold,
+    color: COLORS.brand
+  },
+  actionRow: {
     flexDirection: 'row',
     gap: 10,
-    alignItems: 'flex-start'
+    marginTop: 6
   },
-  disclaimerText: {
+  detailBtn: {
     flex: 1,
-    fontSize: 10,
-    color: '#92400E',
-    lineHeight: 15
-  },
-  actionCol: {
-    gap: 8,
-    marginTop: 4
-  },
-  repeatBtn: {
-    backgroundColor: COLORS.brand,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 14,
-    gap: 8
+    gap: 6,
+    backgroundColor: COLORS.brandLight,
+    borderWidth: 1,
+    borderColor: COLORS.brandBorder,
+    paddingVertical: 12,
+    borderRadius: 12
   },
-  repeatBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.surface
+  detailBtnText: {
+    fontSize: 12,
+    fontFamily: FONTS.bold,
+    color: COLORS.brand
   },
-  backHomeBtn: {
-    backgroundColor: COLORS.surface,
+  finishBtn: {
+    flex: 1,
+    backgroundColor: COLORS.brand,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.line
+    shadowColor: COLORS.brand,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3
   },
-  backHomeBtnText: {
+  finishBtnText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.ink
+    fontFamily: FONTS.bold,
+    color: '#FFFFFF'
   }
 });
-

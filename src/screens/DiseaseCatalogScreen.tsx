@@ -1,100 +1,176 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput } from 'react-native';
+import React, { useState, useMemo, useRef } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  NativeSyntheticEvent,
+  NativeScrollEvent
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS, FONTS } from '../constants/theme';
 import { useDiagnosisStore } from '../store/diagnosisStore';
 import { Header } from '../components/Header';
 import { DISEASES, DIAGNOSTIC_RULES } from '../data/knowledgeBase';
 
+type RiskFilter = 'SEMUA' | 'KRITIS' | 'TINGGI' | 'SEDANG';
+
 export const DiseaseCatalogScreen: React.FC = () => {
   const openDiseaseDetail = useDiagnosisStore((s) => s.openDiseaseDetail);
   const [searchQuery, setSearchQuery] = useState('');
+  const [riskFilter, setRiskFilter] = useState<RiskFilter>('SEMUA');
+  const [isSearchHidden, setIsSearchHidden] = useState(false);
+  const lastScrollY = useRef(0);
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const currentY = event.nativeEvent.contentOffset.y;
+    if (currentY > 60 && currentY > lastScrollY.current + 10) {
+      if (!isSearchHidden) setIsSearchHidden(true);
+    } else if (currentY < lastScrollY.current - 10 || currentY <= 20) {
+      if (isSearchHidden) setIsSearchHidden(false);
+    }
+    lastScrollY.current = currentY;
+  };
 
   const filteredDiseases = useMemo(() => {
-    if (!searchQuery.trim()) return DISEASES;
-    const q = searchQuery.toLowerCase().trim();
-    return DISEASES.filter(
-      (d) =>
-        d.name.toLowerCase().includes(q) ||
-        d.latinName.toLowerCase().includes(q) ||
-        d.code.toLowerCase().includes(q) ||
-        d.description.toLowerCase().includes(q)
-    );
-  }, [searchQuery]);
+    let result = DISEASES;
+
+    // Filter by risk
+    if (riskFilter !== 'SEMUA') {
+      result = result.filter((d) => d.riskLevel === riskFilter);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (d) =>
+          d.name.toLowerCase().includes(q) ||
+          d.latinName.toLowerCase().includes(q) ||
+          d.code.toLowerCase().includes(q) ||
+          d.description.toLowerCase().includes(q)
+      );
+    }
+
+    return result;
+  }, [searchQuery, riskFilter]);
 
   return (
     <View style={styles.container}>
-      <Header title="Katalog Penyakit" subtitle="13 Patologi Broiler Terdata" />
+      <Header title="Penyakit Broiler" subtitle="13 Patologi & Karakteristik Klinis" />
 
-      {/* Modern Search Bar */}
-      <View style={styles.searchWrap}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search-outline" size={18} color="#64748B" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Cari penyakit (contoh: Tetelo, CRD, P01)..."
-            placeholderTextColor="#94A3B8"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color="#94A3B8" />
-            </TouchableOpacity>
-          )}
+      {/* Collapsible Search and Filter Container */}
+      {!isSearchHidden && (
+        <View style={styles.filterContainer}>
+          {/* Modern Search Bar */}
+          <View style={styles.searchBox}>
+            <Ionicons name="search-outline" size={18} color={COLORS.muted} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Cari penyakit (contoh: Tetelo, CRD, P01)..."
+              placeholderTextColor={COLORS.subtle}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={18} color={COLORS.muted} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Risk Level Filter Chips */}
+          <View style={styles.riskFilterRow}>
+            {(
+              [
+                { key: 'SEMUA', label: 'Semua Risiko' },
+                { key: 'KRITIS', label: 'Kritis' },
+                { key: 'TINGGI', label: 'Tinggi' },
+                { key: 'SEDANG', label: 'Sedang' }
+              ] as Array<{ key: RiskFilter; label: string }>
+            ).map((item) => {
+              const isSelected = riskFilter === item.key;
+              return (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[styles.riskChip, isSelected && styles.riskChipActive]}
+                  onPress={() => setRiskFilter(item.key)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.riskChipText, isSelected && styles.riskChipTextActive]}>
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
-      </View>
+      )}
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.countRow}>
-          <Text style={styles.countText}>Menampilkan {filteredDiseases.length} dari 13 Penyakit</Text>
-        </View>
+      {/* Disease Card List (Hapus teks menampilkan 13 dari 13 penyakit) */}
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
+        {filteredDiseases.length === 0 ? (
+          <View style={styles.emptyWrap}>
+            <Ionicons name="search-outline" size={36} color={COLORS.subtle} />
+            <Text style={styles.emptyTitle}>Penyakit Tidak Ditemukan</Text>
+            <Text style={styles.emptyDesc}>
+              Coba sesuaikan kata kunci pencarian atau ubah filter tingkat risiko.
+            </Text>
+          </View>
+        ) : (
+          filteredDiseases.map((disease) => {
+            const ruleCount = DIAGNOSTIC_RULES.filter((r) => r.diseaseId === disease.id).length;
+            const isHighRisk = disease.riskLevel === 'KRITIS' || disease.riskLevel === 'TINGGI';
 
-        {filteredDiseases.map((disease) => {
-          const ruleCount = DIAGNOSTIC_RULES.filter((r) => r.diseaseId === disease.id).length;
-          const isHighRisk = disease.riskLevel === 'KRITIS' || disease.riskLevel === 'TINGGI';
-
-          return (
-            <TouchableOpacity
-              key={disease.id}
-              style={styles.card}
-              activeOpacity={0.8}
-              onPress={() => openDiseaseDetail(disease)}
-            >
-              <View style={styles.cardTop}>
-                <View style={styles.headerLeft}>
-                  <View style={styles.badgeRow}>
-                    <View style={styles.codeBadge}>
-                      <Text style={styles.codeText}>{disease.code}</Text>
+            return (
+              <TouchableOpacity
+                key={disease.id}
+                style={styles.card}
+                activeOpacity={0.8}
+                onPress={() => openDiseaseDetail(disease)}
+              >
+                <View style={styles.cardTop}>
+                  <View style={styles.headerLeft}>
+                    <View style={styles.badgeRow}>
+                      <View style={styles.codeBadge}>
+                        <Text style={styles.codeText}>{disease.code}</Text>
+                      </View>
+                      <View style={[styles.riskBadge, isHighRisk ? styles.riskHigh : styles.riskMedium]}>
+                        <Text style={[styles.riskText, isHighRisk ? styles.riskTextHigh : styles.riskTextMedium]}>
+                          Risiko: {disease.riskLevel}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={[styles.riskBadge, isHighRisk ? styles.riskHigh : styles.riskMedium]}>
-                      <Text style={[styles.riskText, isHighRisk ? styles.riskTextHigh : styles.riskTextMedium]}>
-                        Tingkat Risiko: {disease.riskLevel}
-                      </Text>
-                    </View>
+                    <Text style={styles.diseaseName}>{disease.name}</Text>
+                    <Text style={styles.diseaseLatin}>{disease.latinName}</Text>
                   </View>
-                  <Text style={styles.diseaseName}>{disease.name}</Text>
-                  <Text style={styles.diseaseLatin}>{disease.latinName}</Text>
+                  <View style={styles.chevronWrap}>
+                    <Ionicons name="chevron-forward" size={18} color={COLORS.brand} />
+                  </View>
                 </View>
-                <View style={styles.chevronWrap}>
-                  <Ionicons name="chevron-forward" size={18} color="#0284C7" />
-                </View>
-              </View>
 
-              <Text style={styles.description} numberOfLines={2}>
-                {disease.description}
-              </Text>
+                <Text style={styles.description} numberOfLines={2}>
+                  {disease.description}
+                </Text>
 
-              <View style={styles.cardFooter}>
-                <View style={styles.ruleBadge}>
-                  <Ionicons name="fitness-outline" size={13} color="#0284C7" />
-                  <Text style={styles.ruleBadgeText}>{ruleCount} Gejala Karakteristik</Text>
+                <View style={styles.cardFooter}>
+                  <View style={styles.ruleBadge}>
+                    <Ionicons name="medkit-outline" size={13} color={COLORS.brand} />
+                    <Text style={styles.ruleBadgeText}>{ruleCount} Gejala Patognomonik</Text>
+                  </View>
+                  <Text style={styles.viewDetailText}>Detail & Solusi &rarr;</Text>
                 </View>
-                <Text style={styles.viewDetailText}>Lihat Solusi &rarr;</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+              </TouchableOpacity>
+            );
+          })
+        )}
       </ScrollView>
     </View>
   );
@@ -105,74 +181,105 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.canvas
   },
-  searchWrap: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9'
+  filterContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 6,
+    backgroundColor: COLORS.canvas
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 10
+    borderColor: COLORS.line,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    height: 44,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1
   },
   searchInput: {
     flex: 1,
     fontSize: 13,
-    color: '#0F172A',
-    padding: 0
+    fontFamily: FONTS.medium,
+    color: COLORS.ink
   },
-  countRow: {
-    marginBottom: 4
+  riskFilterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8
   },
-  countText: {
+  riskChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.line
+  },
+  riskChipActive: {
+    backgroundColor: COLORS.brandLight,
+    borderColor: COLORS.brandBorder
+  },
+  riskChipText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#64748B'
+    fontFamily: FONTS.medium,
+    color: COLORS.muted
+  },
+  riskChipTextActive: {
+    color: COLORS.brand,
+    fontFamily: FONTS.bold
   },
   scroll: {
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 20,
+    paddingTop: 6,
+    paddingBottom: 24,
     gap: 12
+  },
+  emptyWrap: {
+    alignItems: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 24
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontFamily: FONTS.bold,
+    color: COLORS.ink,
+    marginTop: 10
+  },
+  emptyDesc: {
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+    color: COLORS.muted,
+    textAlign: 'center',
+    marginTop: 4
   },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: 22,
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 10,
-    shadowColor: '#64748B',
-    shadowOffset: { width: 0, height: 4 },
+    borderColor: COLORS.line,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.04,
-    shadowRadius: 8,
+    shadowRadius: 6,
     elevation: 2
   },
   cardTop: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: 10
+    marginBottom: 8
   },
   headerLeft: {
     flex: 1
-  },
-  chevronWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F0F9FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4
   },
   badgeRow: {
     flexDirection: 'row',
@@ -181,60 +288,73 @@ const styles = StyleSheet.create({
     marginBottom: 6
   },
   codeBadge: {
-    backgroundColor: '#E0F2FE',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8
+    backgroundColor: COLORS.brandLight,
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: COLORS.brandBorder
   },
   codeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#0369A1'
+    fontSize: 10.5,
+    fontFamily: FONTS.bold,
+    color: COLORS.brand
   },
   riskBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6
   },
   riskHigh: {
-    backgroundColor: '#FEE2E2'
+    backgroundColor: '#FEF2F2'
   },
   riskMedium: {
     backgroundColor: '#FEF3C7'
   },
   riskText: {
     fontSize: 10,
-    fontWeight: '700'
+    fontFamily: FONTS.bold
   },
   riskTextHigh: {
-    color: '#B91C1C'
+    color: COLORS.danger
   },
   riskTextMedium: {
-    color: '#B45309'
+    color: '#D97706'
   },
   diseaseName: {
     fontSize: 15,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontFamily: FONTS.bold,
+    color: COLORS.ink,
     marginBottom: 2
   },
   diseaseLatin: {
-    fontSize: 11,
+    fontSize: 12,
+    fontFamily: FONTS.medium,
     fontStyle: 'italic',
-    color: '#64748B'
+    color: COLORS.muted
+  },
+  chevronWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: COLORS.canvas,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   description: {
     fontSize: 12,
-    color: '#475569',
-    lineHeight: 18
+    fontFamily: FONTS.regular,
+    color: COLORS.inkSecondary,
+    lineHeight: 18,
+    marginBottom: 12
   },
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9'
+    borderTopColor: COLORS.lineSubtle,
+    paddingTop: 10
   },
   ruleBadge: {
     flexDirection: 'row',
@@ -243,12 +363,12 @@ const styles = StyleSheet.create({
   },
   ruleBadgeText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#0284C7'
+    fontFamily: FONTS.medium,
+    color: COLORS.brand
   },
   viewDetailText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0284C7'
+    fontSize: 11.5,
+    fontFamily: FONTS.bold,
+    color: COLORS.brand
   }
 });

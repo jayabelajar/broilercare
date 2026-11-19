@@ -1,7 +1,14 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Platform
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS, FONTS } from '../constants/theme';
 import { useDiagnosisStore } from '../store/diagnosisStore';
 import { SYMPTOMS, CF_USER_SCALES } from '../data/knowledgeBase';
 
@@ -18,20 +25,28 @@ export const ConfidencePickerScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Top Wizard Bar */}
+      {/* Top Wizard Bar - Fully Responsive */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerBtn} onPress={() => setActiveScreen('diagnosis_symptoms')}>
-          <Ionicons name="chevron-back" size={20} color={COLORS.ink} />
-          <Text style={styles.headerBtnText}>Kembali</Text>
+        <TouchableOpacity
+          style={styles.headerBtn}
+          activeOpacity={0.7}
+          onPress={() => setActiveScreen('diagnosis_symptoms')}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Ionicons name="arrow-back" size={20} color={COLORS.ink} />
         </TouchableOpacity>
+
         <View style={styles.headerCenter}>
           <Text style={styles.stepBadge}>LANGKAH 2 DARI 2</Text>
-          <Text style={styles.headerTitle}>Skala Keyakinan Peternak</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            Skala Keyakinan
+          </Text>
         </View>
-        <View style={{ width: 40 }} />
+
+        <View style={styles.headerBtnPlaceholder} />
       </View>
 
-      {/* Progress Bar */}
+      {/* Progress Bar 100% */}
       <View style={styles.progressBarTrack}>
         <View style={[styles.progressBarFill, { width: '100%' }]} />
       </View>
@@ -42,9 +57,9 @@ export const ConfidencePickerScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headline}>
-          <Text style={styles.headlineTitle}>Seberapa yakin observasi Anda?</Text>
+          <Text style={styles.headlineTitle}>Tentukan Derajat Kepastian Anda</Text>
           <Text style={styles.headlineDesc}>
-            Pilih tingkat kepastian Anda untuk setiap gejala yang dicentang di kandang.
+            Pilih seberapa yakin Anda melihat gejala-gejala ini pada kawanan ayam. Skor CF Pakar akan dikombinasikan dengan derajat keyakinan Anda.
           </Text>
         </View>
 
@@ -92,18 +107,24 @@ export const ConfidencePickerScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      {/* Responsive Bottom Action Bar (Normal flow, never covered by Android 3 buttons) */}
+      {/* Responsive Bottom Action Bar */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={styles.modifyBtn}
           onPress={() => setActiveScreen('diagnosis_symptoms')}
+          activeOpacity={0.7}
         >
+          <Ionicons name="create-outline" size={16} color={COLORS.muted} />
           <Text style={styles.modifyBtnText}>Ubah Gejala</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.calcBtn} activeOpacity={0.85} onPress={calculateResult}>
-          <Ionicons name="calculator" size={17} color="#FFFFFF" />
+        <TouchableOpacity
+          style={styles.calcBtn}
+          activeOpacity={0.85}
+          onPress={() => calculateResult()}
+        >
           <Text style={styles.calcBtnText}>Hitung Diagnosis CF</Text>
+          <Ionicons name="sparkles" size={16} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
     </View>
@@ -120,39 +141,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.line
+    paddingTop: 12,
+    paddingBottom: 10,
+    backgroundColor: COLORS.surface
   },
   headerBtn: {
-    flexDirection: 'row',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surfaceSubtle,
     alignItems: 'center',
-    padding: 4
-  },
-  headerBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.ink,
-    marginLeft: 2
+    justifyContent: 'center'
   },
   headerCenter: {
+    flex: 1,
     alignItems: 'center'
   },
   stepBadge: {
-    fontSize: 9,
-    fontWeight: '800',
+    fontSize: 9.5,
+    fontFamily: FONTS.bold,
     color: COLORS.brand,
     letterSpacing: 0.5
   },
   headerTitle: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 15,
+    fontFamily: FONTS.bold,
     color: COLORS.ink
+  },
+  headerBtnPlaceholder: {
+    width: 36
   },
   progressBarTrack: {
     height: 3,
-    backgroundColor: '#E2E8F0'
+    backgroundColor: COLORS.line,
+    width: '100%'
   },
   progressBarFill: {
     height: '100%',
@@ -162,65 +184,73 @@ const styles = StyleSheet.create({
     flex: 1
   },
   scroll: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 24,
     gap: 14
   },
   headline: {
-    gap: 2
+    marginBottom: 4
   },
   headlineTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: COLORS.ink
+    fontSize: 17,
+    fontFamily: FONTS.bold,
+    color: COLORS.ink,
+    marginBottom: 4
   },
   headlineDesc: {
-    fontSize: 11.5,
+    fontSize: 12,
+    fontFamily: FONTS.regular,
     color: COLORS.muted,
-    lineHeight: 16
+    lineHeight: 18
   },
   list: {
     gap: 12
   },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     borderWidth: 1,
     borderColor: COLORS.line,
-    gap: 12
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: 10
+    marginBottom: 12
   },
   cardTitleWrap: {
-    flex: 1
+    flex: 1,
+    paddingRight: 10
   },
   categoryLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: FONTS.bold,
     color: COLORS.brand,
-    textTransform: 'uppercase',
     marginBottom: 2
   },
   symptomTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.ink
+    fontSize: 13.5,
+    fontFamily: FONTS.bold,
+    color: COLORS.ink,
+    lineHeight: 19
   },
   codeBadge: {
-    backgroundColor: COLORS.bentoBlue,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8
+    backgroundColor: COLORS.surfaceSubtle,
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6
   },
   codeText: {
     fontSize: 10,
-    fontWeight: '800',
-    color: COLORS.brandDark
+    fontFamily: FONTS.bold,
+    color: COLORS.inkSecondary
   },
   scaleGrid: {
     flexDirection: 'row',
@@ -228,80 +258,81 @@ const styles = StyleSheet.create({
   },
   scaleBtn: {
     flex: 1,
-    backgroundColor: COLORS.surfaceSubtle,
-    borderRadius: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 4,
+    borderRadius: 10,
+    backgroundColor: COLORS.surfaceSubtle,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.line
+    justifyContent: 'center'
   },
   scaleBtnActive: {
-    backgroundColor: COLORS.brandNavy,
-    borderColor: COLORS.brandNavy
+    backgroundColor: COLORS.brandLight,
+    borderColor: COLORS.brand
   },
   scaleLabel: {
     fontSize: 10,
-    fontWeight: '600',
-    color: COLORS.ink
+    fontFamily: FONTS.medium,
+    color: COLORS.muted,
+    textAlign: 'center'
   },
   scaleLabelActive: {
-    color: '#FFFFFF',
-    fontWeight: '700'
+    color: COLORS.brand,
+    fontFamily: FONTS.bold
   },
   scaleValue: {
-    fontSize: 9,
-    color: COLORS.muted,
+    fontSize: 10.5,
+    fontFamily: FONTS.bold,
+    color: COLORS.inkSecondary,
     marginTop: 2
   },
   scaleValueActive: {
-    color: '#93C5FD'
+    color: COLORS.brand
   },
   bottomBar: {
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.line,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.surface,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 8
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.line,
+    gap: 12
   },
   modifyBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.line
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceSubtle
   },
   modifyBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 12.5,
+    fontFamily: FONTS.semiBold,
     color: COLORS.inkSecondary
   },
   calcBtn: {
     flex: 1,
-    backgroundColor: COLORS.brand,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 11,
-    borderRadius: 14,
-    gap: 6,
+    gap: 8,
+    backgroundColor: COLORS.brand,
+    paddingVertical: 12,
+    borderRadius: 12,
     shadowColor: COLORS.brand,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowRadius: 6,
     elevation: 3
   },
   calcBtnText: {
-    fontSize: 12.5,
-    fontWeight: '700',
+    fontSize: 13,
+    fontFamily: FONTS.bold,
     color: '#FFFFFF'
   }
 });
