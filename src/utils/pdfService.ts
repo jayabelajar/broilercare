@@ -13,9 +13,14 @@ interface DiagnosisPdfParams {
 }
 
 /**
- * Helper untuk menyalin file ke cacheDirectory yang dapat dibaca oleh Android FileProvider
+ * Helper untuk membuat dan membagikan PDF secara aman di Android dan iOS
+ * Menggunakan Base64 in-memory write untuk menghindari permission lock pada direktori Print Android
  */
-const safeSharePdf = async (sourceUri: string, baseFileName: string, dialogTitle: string) => {
+const safeGenerateAndSharePdf = async (
+  html: string,
+  baseFileName: string,
+  dialogTitle: string
+) => {
   try {
     const isAvailable = await Sharing.isAvailableAsync();
     if (!isAvailable) {
@@ -23,39 +28,40 @@ const safeSharePdf = async (sourceUri: string, baseFileName: string, dialogTitle
       return;
     }
 
-    // Bersihkan nama file dari spasi atau karakter ilegal
+    // 1. Generate PDF dengan base64: true agar byte data terbaca langsung di memori native
+    const printResult = await Print.printToFileAsync({
+      html,
+      base64: true
+    });
+
     const cleanName = baseFileName.replace(/[^a-zA-Z0-9_-]/g, '_');
     const targetFileName = `${cleanName}_${Date.now()}.pdf`;
-    const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
-    const targetUri = `${cacheDir}${targetFileName}`;
+    const targetDir = FileSystem.documentDirectory || FileSystem.cacheDirectory || '';
+    const targetUri = `${targetDir}${targetFileName}`;
 
-    const sourceUriFormatted = sourceUri.startsWith('file://')
-      ? sourceUri
-      : `file://${sourceUri}`;
+    if (printResult.base64) {
+      // 2. Tulis data Base64 langsung ke documentDirectory aplikasi
+      // Ini menyelesaikan masalah 'Location isn't readable' dan 'Not allowed to read file' di Android
+      await FileSystem.writeAsStringAsync(targetUri, printResult.base64, {
+        encoding: FileSystem.EncodingType.Base64
+      });
 
-    // Salin ke direktori cache yang diizinkan oleh FileProvider Expo Sharing di Android
-    await FileSystem.copyAsync({
-      from: sourceUriFormatted,
-      to: targetUri
-    });
-
-    await Sharing.shareAsync(targetUri, {
-      mimeType: 'application/pdf',
-      dialogTitle,
-      UTI: '.pdf'
-    });
-  } catch (err: any) {
-    console.error('Error in safeSharePdf:', err);
-    // Fallback jika copyAsync gagal atau sharing bermasalah
-    try {
-      await Sharing.shareAsync(sourceUri, {
+      await Sharing.shareAsync(targetUri, {
         mimeType: 'application/pdf',
         dialogTitle,
         UTI: '.pdf'
       });
-    } catch (innerErr) {
-      Alert.alert('Gagal Ekspor', 'Tidak dapat membagikan laporan PDF.');
+    } else {
+      // Fallback jika platform tidak mengembalikan base64
+      await Sharing.shareAsync(printResult.uri, {
+        mimeType: 'application/pdf',
+        dialogTitle,
+        UTI: '.pdf'
+      });
     }
+  } catch (err: any) {
+    console.error('Error in safeGenerateAndSharePdf:', err);
+    Alert.alert('Gagal Ekspor', 'Terjadi kesalahan saat memproses laporan PDF.');
   }
 };
 
@@ -363,8 +369,11 @@ export const shareDiagnosisResultPdf = async ({
     </html>
   `;
 
-  const { uri } = await Print.printToFileAsync({ html, base64: false });
-  await safeSharePdf(uri, `Diagnosis_${primary.disease.name}`, `Laporan Diagnosis - ${primary.disease.name}`);
+  await safeGenerateAndSharePdf(
+    html,
+    `Diagnosis_${primary.disease.name}`,
+    `Laporan Diagnosis - ${primary.disease.name}`
+  );
 };
 
 /**
@@ -570,6 +579,9 @@ export const shareDiseaseInfoPdf = async (
     </html>
   `;
 
-  const { uri } = await Print.printToFileAsync({ html, base64: false });
-  await safeSharePdf(uri, `Info_${disease.name}`, `Informasi Penyakit - ${disease.name}`);
+  await safeGenerateAndSharePdf(
+    html,
+    `Info_${disease.name}`,
+    `Informasi Penyakit - ${disease.name}`
+  );
 };
