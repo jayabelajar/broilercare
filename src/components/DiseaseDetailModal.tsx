@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,23 +7,42 @@ import {
   Modal,
   ScrollView,
   Dimensions,
-  Platform
+  Platform,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../constants/theme';
 import { useDiagnosisStore } from '../store/diagnosisStore';
 import { DIAGNOSTIC_RULES, SYMPTOMS } from '../data/knowledgeBase';
+import { shareDiseaseInfoPdf } from '../utils/pdfService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export const DiseaseDetailModal: React.FC = () => {
   const selectedDisease = useDiagnosisStore((s) => s.selectedDiseaseDetail);
   const closeDiseaseDetail = useDiagnosisStore((s) => s.closeDiseaseDetail);
+  const user = useDiagnosisStore((s) => s.user);
+
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   if (!selectedDisease) return null;
 
   const rules = DIAGNOSTIC_RULES.filter((r) => r.diseaseId === selectedDisease.id);
   const isHighRisk = selectedDisease.riskLevel === 'KRITIS' || selectedDisease.riskLevel === 'TINGGI';
+
+  const handleSharePdf = async () => {
+    if (isGeneratingPdf) return;
+    setIsGeneratingPdf(true);
+    try {
+      await shareDiseaseInfoPdf(selectedDisease, user);
+    } catch (e) {
+      console.error('Error share disease pdf:', e);
+      Alert.alert('Gagal Ekspor', 'Tidak dapat membuat atau membagikan file PDF.');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   return (
     <Modal
@@ -131,9 +150,29 @@ export const DiseaseDetailModal: React.FC = () => {
             </View>
           </ScrollView>
 
-          {/* Footer Always Visible */}
+          {/* Footer Always Visible: Kirim PDF Sebelahan dengan Tutup Informasi */}
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.confirmBtn} onPress={closeDiseaseDetail}>
+            <TouchableOpacity
+              style={styles.shareBtn}
+              activeOpacity={0.8}
+              onPress={handleSharePdf}
+              disabled={isGeneratingPdf}
+            >
+              {isGeneratingPdf ? (
+                <ActivityIndicator size="small" color={COLORS.brand} />
+              ) : (
+                <Ionicons name="document-text-outline" size={16} color={COLORS.brand} />
+              )}
+              <Text style={styles.shareBtnText}>
+                {isGeneratingPdf ? 'Membuat...' : 'Kirim PDF'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.confirmBtn}
+              onPress={closeDiseaseDetail}
+              activeOpacity={0.8}
+            >
               <Text style={styles.confirmBtnText}>Tutup Informasi</Text>
             </TouchableOpacity>
           </View>
@@ -311,17 +350,38 @@ const styles = StyleSheet.create({
     color: COLORS.brand
   },
   footer: {
+    flexDirection: 'row',
+    gap: 10,
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: COLORS.line,
     backgroundColor: COLORS.surface,
     paddingBottom: Platform.OS === 'ios' ? 24 : 16
   },
+  shareBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.brandLight,
+    borderWidth: 1,
+    borderColor: COLORS.brandBorder,
+    paddingVertical: 12,
+    borderRadius: 12
+  },
+  shareBtnText: {
+    fontSize: 13,
+    fontFamily: FONTS.bold,
+    color: COLORS.brand
+  },
   confirmBtn: {
+    flex: 1,
     backgroundColor: COLORS.brand,
-    paddingVertical: 13,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: COLORS.brand,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,

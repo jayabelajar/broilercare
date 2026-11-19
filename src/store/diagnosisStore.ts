@@ -227,7 +227,7 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
             createdTimestamp: h.created_timestamp
           })),
           notifications: dbNotifs,
-          offlineNotification: `👋 Selamat datang kembali, ${profile.name}!`
+          offlineNotification: `Selamat datang kembali, ${profile.name}`
         });
         return { success: true };
       }
@@ -264,7 +264,7 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
           activeTab: 'beranda',
           history: [],
           notifications: dbNotifs,
-          offlineNotification: `🎉 Pendaftaran sukses! Halo, ${profile.name}.`
+          offlineNotification: `Pendaftaran berhasil. Selamat datang, ${profile.name}`
         });
         return { success: true };
       }
@@ -286,7 +286,7 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
           farmName,
           avatar: avatar || user.avatar
         },
-        offlineNotification: '✅ Profil peternak berhasil diperbarui!'
+        offlineNotification: 'Profil peternak berhasil diperbarui'
       });
       return true;
     } catch (e) {
@@ -401,13 +401,13 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
         activeScreen: 'diagnosis_result',
         history: [newHistoryItem, ...history.slice(0, 50)],
         notifications: updatedNotifs,
-        offlineNotification: `✅ Diagnosis Selesai: ${primary.disease.name} (${primary.percentage}%)`
+        offlineNotification: `Diagnosis Selesai: ${primary.disease.name} (${primary.percentage}%)`
       });
     } else {
       set({
         diagnosisResults: [],
         activeScreen: 'diagnosis_result',
-        offlineNotification: '⚠️ Gejala Tidak Cocok dengan Basis Aturan'
+        offlineNotification: 'Gejala tidak cocok dengan basis aturan'
       });
     }
   },

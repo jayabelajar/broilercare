@@ -29,25 +29,23 @@ export const Header: React.FC<HeaderProps> = ({ title }) => {
         </Text>
       </View>
 
-      {/* Ikon Notifikasi Responsif */}
+      {/* Ikon Notifikasi Murni Tanpa Border Rounded */}
       <TouchableOpacity
         style={styles.notifBtn}
-        activeOpacity={0.7}
+        activeOpacity={0.65}
         onPress={openNotificationModal}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
-        <View style={styles.notifCircle}>
-          <Ionicons
-            name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
-            size={20}
-            color={unreadCount > 0 ? COLORS.brand : COLORS.ink}
-          />
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-            </View>
-          )}
-        </View>
+        <Ionicons
+          name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
+          size={24}
+          color={unreadCount > 0 ? COLORS.brand : COLORS.ink}
+        />
+        {unreadCount > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+          </View>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -77,37 +75,23 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4
   },
   notifBtn: {
-    padding: 2
-  },
-  notifCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.line,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2
+    position: 'relative'
   },
   badge: {
     position: 'absolute',
-    top: 3,
-    right: 3,
+    top: 2,
+    right: 2,
     minWidth: 16,
     height: 16,
     borderRadius: 8,
     backgroundColor: COLORS.danger,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 1.5,
-    borderColor: COLORS.surface
+    paddingHorizontal: 3
   },
   badgeText: {
     fontSize: 9,
