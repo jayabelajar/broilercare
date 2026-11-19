@@ -97,16 +97,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    height: 64,
+    height: 62,
     borderRadius: 24,
     paddingHorizontal: 6,
     borderWidth: 1,
-    borderColor: '#DBEAFE',
-    shadowColor: COLORS.brand,
+    borderColor: COLORS.line,
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 8
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    elevation: 6
   },
   tabItem: {
     flex: 1,
