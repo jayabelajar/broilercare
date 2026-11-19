@@ -97,16 +97,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    height: 62,
-    borderRadius: 22,
+    height: 64,
+    borderRadius: 24,
     paddingHorizontal: 6,
     borderWidth: 1,
-    borderColor: COLORS.line,
-    shadowColor: '#0F172A',
+    borderColor: '#DBEAFE',
+    shadowColor: COLORS.brand,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 6
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8
   },
   tabItem: {
     flex: 1,
@@ -149,17 +149,19 @@ const styles = StyleSheet.create({
     paddingVertical: 2
   },
   actionCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: COLORS.brand,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
     shadowColor: COLORS.brand,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
-    elevation: 5
+    elevation: 6
   },
   actionLabel: {
     fontSize: 10,

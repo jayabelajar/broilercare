@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../constants/theme';
 import { useDiagnosisStore } from '../store/diagnosisStore';
@@ -18,104 +18,130 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
   const unreadCount = notifications.filter((n) => n.is_read === 0).length;
 
   return (
-    <View style={styles.container}>
-      {/* Left Title & Subtitle (No branding icon/text) */}
-      <View style={styles.left}>
-        <Text style={styles.greetingTitle} numberOfLines={1}>
-          {title || `Halo, ${displayName}`}
-        </Text>
-        <Text style={styles.greetingSub} numberOfLines={1}>
-          {subtitle || (user?.farmName ? `🏠 ${user.farmName}` : 'Sistem Pakar Broiler')}
-        </Text>
-      </View>
+    <View style={styles.headerWrapper}>
+      {/* Decorative ambient gradients */}
+      <View style={styles.ambientCircleOne} />
+      <View style={styles.ambientCircleTwo} />
 
-      {/* Right Notification Bell */}
-      <TouchableOpacity
-        style={styles.notifBtn}
-        activeOpacity={0.7}
-        onPress={openNotificationModal}
-      >
-        <View style={styles.notifCircle}>
-          <Ionicons
-            name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
-            size={20}
-            color={unreadCount > 0 ? COLORS.brand : COLORS.ink}
-          />
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-            </View>
-          )}
+      <View style={styles.contentRow}>
+        <View style={styles.left}>
+          <Text style={styles.greetingTitle} numberOfLines={1}>
+            {title || `Halo, ${displayName}`}
+          </Text>
+          <Text style={styles.greetingSub} numberOfLines={1}>
+            {subtitle || (user?.farmName ? `🏠 ${user.farmName}` : 'Sistem Pakar Broiler')}
+          </Text>
         </View>
-      </TouchableOpacity>
+
+        {/* Right Frosted Notification Bell */}
+        <TouchableOpacity
+          style={styles.notifBtn}
+          activeOpacity={0.75}
+          onPress={openNotificationModal}
+        >
+          <View style={styles.notifCircle}>
+            <Ionicons
+              name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
+              size={20}
+              color="#FFFFFF"
+            />
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  headerWrapper: {
+    backgroundColor: COLORS.brand, // Royal Blue Primary (#2563EB)
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 12 : 14,
+    paddingBottom: 18,
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    overflow: 'hidden',
+    position: 'relative',
+    shadowColor: COLORS.brand,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    elevation: 6
+  },
+  ambientCircleOne: {
+    position: 'absolute',
+    top: -30,
+    right: -20,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)'
+  },
+  ambientCircleTwo: {
+    position: 'absolute',
+    bottom: -40,
+    left: 20,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(29, 78, 216, 0.4)'
+  },
+  contentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 10,
-    backgroundColor: COLORS.canvas,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.lineSubtle
+    justifyContent: 'space-between'
   },
   left: {
     flex: 1,
-    justifyContent: 'center'
+    paddingRight: 10
   },
   greetingTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: FONTS.extraBold,
-    color: COLORS.ink,
-    letterSpacing: -0.3
+    color: '#FFFFFF',
+    letterSpacing: -0.4
   },
   greetingSub: {
-    fontSize: 11.5,
-    color: COLORS.muted,
+    fontSize: 12,
+    color: '#DBEAFE', // Soft icy blue tint
     fontFamily: FONTS.medium,
-    marginTop: 2
+    marginTop: 3
   },
   notifBtn: {
-    padding: 2,
-    marginLeft: 8
+    padding: 2
   },
   notifCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.line,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2
+    position: 'relative'
   },
   badge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
+    top: 3,
+    right: 3,
+    minWidth: 17,
+    height: 17,
+    borderRadius: 8.5,
     backgroundColor: COLORS.danger,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,
-    borderWidth: 1.5,
-    borderColor: COLORS.surface
+    borderWidth: 2,
+    borderColor: '#FFFFFF'
   },
   badgeText: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontFamily: FONTS.bold,
     color: '#FFFFFF'
   }

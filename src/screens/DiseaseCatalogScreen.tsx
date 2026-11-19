@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 14,
     paddingBottom: 6,
     backgroundColor: COLORS.canvas
   },

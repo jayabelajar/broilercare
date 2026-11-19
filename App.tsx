@@ -112,7 +112,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
         {renderContent()}
         <NotificationBanner />
         <NotificationModal
