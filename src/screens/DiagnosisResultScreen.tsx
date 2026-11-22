@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../constants/theme';
 import { useDiagnosisStore } from '../store/diagnosisStore';
-import { SYMPTOMS } from '../data/knowledgeBase';
+import { SYMPTOMS, evaluateAgeCorrelation } from '../data/knowledgeBase';
 import { shareDiagnosisResultPdf } from '../utils/pdfService';
 
 export const DiagnosisResultScreen: React.FC = () => {
@@ -20,6 +20,7 @@ export const DiagnosisResultScreen: React.FC = () => {
   const setActiveTab = useDiagnosisStore((s) => s.setActiveTab);
   const openDiseaseDetail = useDiagnosisStore((s) => s.openDiseaseDetail);
   const user = useDiagnosisStore((s) => s.user);
+  const flockInfo = useDiagnosisStore((s) => s.flockInfo);
 
   const [isCalcExpanded, setIsCalcExpanded] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -46,6 +47,7 @@ export const DiagnosisResultScreen: React.FC = () => {
 
   const primary = diagnosisResults[0];
   const differentials = diagnosisResults.slice(1, 4).filter((r) => r.cfScore > 0.05);
+  const ageCorrelation = evaluateAgeCorrelation(primary.disease.id, flockInfo.chickenAge);
 
   const generateAndSharePdf = async () => {
     if (isGeneratingPdf) return;
@@ -54,7 +56,8 @@ export const DiagnosisResultScreen: React.FC = () => {
       await shareDiagnosisResultPdf({
         primary,
         differentials,
-        user
+        user,
+        flockInfo
       });
     } catch (error) {
       console.error('Error export PDF:', error);
@@ -94,6 +97,44 @@ export const DiagnosisResultScreen: React.FC = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Identitas Flok & Kandang */}
+        <View style={styles.flockInfoCard}>
+          <View style={styles.flockInfoHeader}>
+            <View style={styles.flockTitleRow}>
+              <Ionicons name="home-outline" size={16} color={COLORS.brand} />
+              <Text style={styles.flockCageName}>{flockInfo.cageName || 'Kandang Utama'}</Text>
+            </View>
+            {flockInfo.chickenAge ? (
+              <View style={styles.flockAgeBadge}>
+                <Ionicons name="calendar-outline" size={12} color="#1E40AF" />
+                <Text style={styles.flockAgeText}>Umur {flockInfo.chickenAge} Hari</Text>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.flockMetaRow}>
+            {flockInfo.populationCount ? (
+              <Text style={styles.flockMetaItem}>
+                Populasi: <Text style={styles.flockMetaBold}>{flockInfo.populationCount.toLocaleString('id-ID')} ekor</Text>
+              </Text>
+            ) : null}
+            {flockInfo.affectedCount ? (
+              <Text style={styles.flockMetaItem}>
+                Bergejala: <Text style={styles.flockMetaBold}>{flockInfo.affectedCount.toLocaleString('id-ID')} ekor</Text>
+              </Text>
+            ) : null}
+          </View>
+
+          {flockInfo.notes ? (
+            <View style={styles.flockNotesBox}>
+              <Ionicons name="document-text-outline" size={13} color={COLORS.muted} />
+              <Text style={styles.flockNotesText} numberOfLines={2}>
+                "{flockInfo.notes}"
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
         {/* Primary Match Card */}
         <View style={styles.primaryCard}>
           <View style={styles.primaryTop}>
@@ -124,6 +165,41 @@ export const DiagnosisResultScreen: React.FC = () => {
             <Text style={styles.footerCount}>{primary.matchedRules.length} gejala cocok</Text>
           </View>
         </View>
+
+        {/* Age Epidemiological Correlation Insight Box */}
+        {ageCorrelation && (
+          <View
+            style={[
+              styles.ageInsightCard,
+              { borderColor: ageCorrelation.isMatch ? '#A7F3D0' : '#FDE68A' }
+            ]}
+          >
+            <View style={styles.ageInsightTop}>
+              <View
+                style={[
+                  styles.ageStatusPill,
+                  { backgroundColor: ageCorrelation.isMatch ? '#D1FAE5' : '#FEF3C7' }
+                ]}
+              >
+                <Ionicons
+                  name={ageCorrelation.isMatch ? 'checkmark-circle' : 'alert-circle'}
+                  size={13}
+                  color={ageCorrelation.badgeColor}
+                />
+                <Text
+                  style={[
+                    styles.ageStatusText,
+                    { color: ageCorrelation.badgeColor }
+                  ]}
+                >
+                  {ageCorrelation.statusText}
+                </Text>
+              </View>
+              <Text style={styles.agePhaseText}>{ageCorrelation.phaseName}</Text>
+            </View>
+            <Text style={styles.ageDetailText}>{ageCorrelation.detailText}</Text>
+          </View>
+        )}
 
         {/* Calculation Accordion */}
         <View style={styles.card}>
@@ -275,6 +351,111 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 14,
     paddingBottom: 32
+  },
+  flockInfoCard: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    padding: 12,
+    gap: 6
+  },
+  flockInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  flockTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  flockCageName: {
+    fontFamily: FONTS.bold,
+    fontSize: 14,
+    color: '#0F172A'
+  },
+  flockAgeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6
+  },
+  flockAgeText: {
+    fontFamily: FONTS.semiBold,
+    fontSize: 11,
+    color: '#1E40AF'
+  },
+  flockMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14
+  },
+  flockMetaItem: {
+    fontFamily: FONTS.regular,
+    fontSize: 11.5,
+    color: '#64748B'
+  },
+  flockMetaBold: {
+    fontFamily: FONTS.semiBold,
+    color: '#0F172A'
+  },
+  flockNotesBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    marginTop: 2
+  },
+  flockNotesText: {
+    fontFamily: FONTS.regular,
+    fontSize: 11.5,
+    color: '#475569',
+    fontStyle: 'italic',
+    flex: 1
+  },
+  ageInsightCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderRadius: 14,
+    padding: 12,
+    gap: 6
+  },
+  ageInsightTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  ageStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6
+  },
+  ageStatusText: {
+    fontFamily: FONTS.bold,
+    fontSize: 11
+  },
+  agePhaseText: {
+    fontFamily: FONTS.medium,
+    fontSize: 11,
+    color: '#64748B'
+  },
+  ageDetailText: {
+    fontFamily: FONTS.regular,
+    fontSize: 11.5,
+    color: '#334155',
+    lineHeight: 16.5
   },
   emptyContainer: {
     flex: 1,

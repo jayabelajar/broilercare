@@ -18,6 +18,7 @@ import { NotificationModal } from './src/components/NotificationModal';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
+import { DiagnosisInfoScreen } from './src/screens/DiagnosisInfoScreen';
 import { SymptomPickerScreen } from './src/screens/SymptomPickerScreen';
 import { ConfidencePickerScreen } from './src/screens/ConfidencePickerScreen';
 import { DiagnosisResultScreen } from './src/screens/DiagnosisResultScreen';
@@ -85,17 +86,22 @@ export default function App() {
       return <AuthScreen />;
     }
 
-    // 3. Diagnosis Step 1: Select symptoms
+    // 3. Diagnosis Step 1: Flock & Cage Identification
+    if (activeScreen === 'diagnosis_info') {
+      return <DiagnosisInfoScreen />;
+    }
+
+    // 4. Diagnosis Step 2: Select symptoms
     if (activeScreen === 'diagnosis_symptoms') {
       return <SymptomPickerScreen />;
     }
 
-    // 4. Diagnosis Step 2: Set confidence (Certainty Factor)
+    // 5. Diagnosis Step 3: Set confidence (Certainty Factor)
     if (activeScreen === 'diagnosis_confidence') {
       return <ConfidencePickerScreen />;
     }
 
-    // 5. Diagnosis Step 3: Result & Treatment recommendations
+    // 6. Diagnosis Step 4: Result & Treatment recommendations
     if (activeScreen === 'diagnosis_result') {
       return <DiagnosisResultScreen />;
     }

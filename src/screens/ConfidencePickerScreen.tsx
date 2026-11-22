@@ -37,7 +37,7 @@ export const ConfidencePickerScreen: React.FC = () => {
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
-          <Text style={styles.stepBadge}>LANGKAH 2 DARI 2</Text>
+          <Text style={styles.stepBadge}>LANGKAH 3 DARI 3</Text>
           <Text style={styles.headerTitle} numberOfLines={1}>
             Skala Keyakinan
           </Text>

@@ -20,6 +20,10 @@ export interface DBDiagnosisRecord {
   percentage: number;
   symptoms_count: number;
   risk_level: string;
+  cage_name?: string;
+  chicken_age?: number;
+  population_count?: number;
+  notes?: string;
   created_timestamp: number;
 }
 
@@ -82,6 +86,10 @@ export async function initDatabase(): Promise<void> {
         percentage REAL NOT NULL,
         symptoms_count INTEGER NOT NULL,
         risk_level TEXT NOT NULL,
+        cage_name TEXT,
+        chicken_age INTEGER,
+        population_count INTEGER,
+        notes TEXT,
         created_timestamp INTEGER NOT NULL
       );
 
@@ -101,6 +109,12 @@ export async function initDatabase(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_hist_time ON diagnosis_history (created_timestamp);
       CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications (user_id);
     `);
+
+    // Safe column migrations for existing databases
+    try { await db.execAsync('ALTER TABLE diagnosis_history ADD COLUMN cage_name TEXT;'); } catch (_) {}
+    try { await db.execAsync('ALTER TABLE diagnosis_history ADD COLUMN chicken_age INTEGER;'); } catch (_) {}
+    try { await db.execAsync('ALTER TABLE diagnosis_history ADD COLUMN population_count INTEGER;'); } catch (_) {}
+    try { await db.execAsync('ALTER TABLE diagnosis_history ADD COLUMN notes TEXT;'); } catch (_) {}
 
     // Check if initial seed user exists
     const existingUser = await db.getFirstAsync<DBUser>('SELECT * FROM users LIMIT 1');
@@ -122,8 +136,8 @@ export async function initDatabase(): Promise<void> {
       // Seed initial history item
       const now = new Date();
       await db.runAsync(
-        `INSERT INTO diagnosis_history (id, user_id, date, time, disease_name, disease_id, percentage, symptoms_count, risk_level, created_timestamp)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO diagnosis_history (id, user_id, date, time, disease_name, disease_id, percentage, symptoms_count, risk_level, cage_name, chicken_age, population_count, notes, created_timestamp)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           'HIST-INIT-1',
           'USR-SEED-01',
@@ -134,6 +148,10 @@ export async function initDatabase(): Promise<void> {
           99,
           5,
           'SEDANG',
+          'Kandang 1 - Postal',
+          24,
+          5000,
+          'Ayam tampak lesu dan ngorok di malam hari saat suhu dingin',
           now.getTime() - 86400000
         ]
       );
@@ -176,6 +194,10 @@ export async function initDatabase(): Promise<void> {
         percentage: 99,
         symptoms_count: 5,
         risk_level: 'SEDANG',
+        cage_name: 'Kandang 1 - Postal',
+        chicken_age: 24,
+        population_count: 5000,
+        notes: 'Ayam tampak lesu dan ngorok di malam hari saat suhu dingin',
         created_timestamp: Date.now() - 86400000
       });
       memoryStore.notifications.push({
@@ -320,8 +342,8 @@ export async function dbSaveDiagnosis(record: DBDiagnosisRecord): Promise<void> 
   const db = await getDB();
   if (db) {
     await db.runAsync(
-      `INSERT INTO diagnosis_history (id, user_id, date, time, disease_name, disease_id, percentage, symptoms_count, risk_level, created_timestamp)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO diagnosis_history (id, user_id, date, time, disease_name, disease_id, percentage, symptoms_count, risk_level, cage_name, chicken_age, population_count, notes, created_timestamp)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         record.id,
         record.user_id,
@@ -332,6 +354,10 @@ export async function dbSaveDiagnosis(record: DBDiagnosisRecord): Promise<void> 
         record.percentage,
         record.symptoms_count,
         record.risk_level,
+        record.cage_name || null,
+        record.chicken_age ?? null,
+        record.population_count ?? null,
+        record.notes || null,
         record.created_timestamp
       ]
     );

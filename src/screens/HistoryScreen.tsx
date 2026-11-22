@@ -106,8 +106,14 @@ const SwipeableHistoryCard: React.FC<SwipeableCardProps> = ({ record, onPress, o
         >
           <View style={styles.recordTop}>
             <View style={styles.recordDateTime}>
-              <Ionicons name="time-outline" size={13} color={COLORS.muted} />
-              <Text style={styles.recordDateText}>{record.date} • {record.time}</Text>
+              <View style={styles.cagePill}>
+                <Ionicons name="home" size={11} color={COLORS.brand} />
+                <Text style={styles.cagePillText}>{record.cageName || 'Kandang Utama'}</Text>
+              </View>
+              {record.chickenAge ? (
+                <Text style={styles.agePillText}>Umur {record.chickenAge} hr</Text>
+              ) : null}
+              <Text style={styles.recordDateText}>• {record.date}</Text>
             </View>
             <View style={[styles.riskBadge, isHighRisk ? styles.riskHigh : styles.riskMedium]}>
               <Text style={[styles.riskBadgeText, isHighRisk ? styles.riskTextHigh : styles.riskTextMedium]}>
@@ -120,8 +126,14 @@ const SwipeableHistoryCard: React.FC<SwipeableCardProps> = ({ record, onPress, o
             <View style={{ flex: 1, paddingRight: 8 }}>
               <Text style={styles.recordDiseaseName}>{record.diseaseName}</Text>
               <Text style={styles.recordSymptoms}>
-                Berdasarkan {record.symptomsCount} gejala klinis kawanan
+                {record.symptomsCount} Gejala Cocok
+                {record.populationCount ? ` • Flok ${record.populationCount.toLocaleString('id-ID')} ekor` : ''}
               </Text>
+              {record.notes ? (
+                <Text style={styles.recordNotesSnippet} numberOfLines={1}>
+                  "{record.notes}"
+                </Text>
+              ) : null}
             </View>
             <View style={styles.pctBadge}>
               <Text style={styles.pctNumber}>{record.percentage}%</Text>
@@ -180,7 +192,9 @@ export const HistoryScreen: React.FC = () => {
         return (
           item.diseaseName.toLowerCase().includes(q) ||
           item.riskLevel.toLowerCase().includes(q) ||
-          item.date.toLowerCase().includes(q)
+          item.date.toLowerCase().includes(q) ||
+          (item.cageName && item.cageName.toLowerCase().includes(q)) ||
+          (item.notes && item.notes.toLowerCase().includes(q))
         );
       }
 
@@ -501,6 +515,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5
   },
+  cagePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5
+  },
+  cagePillText: {
+    fontFamily: FONTS.bold,
+    fontSize: 10.5,
+    color: COLORS.brand
+  },
+  agePillText: {
+    fontFamily: FONTS.medium,
+    fontSize: 10.5,
+    color: '#4B5563'
+  },
   recordDateText: {
     fontSize: 11,
     fontFamily: FONTS.medium,
@@ -543,6 +576,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: FONTS.regular,
     color: COLORS.muted
+  },
+  recordNotesSnippet: {
+    fontSize: 10.5,
+    fontFamily: FONTS.regular,
+    color: '#6B7280',
+    fontStyle: 'italic',
+    marginTop: 2
   },
   pctBadge: {
     alignItems: 'center',

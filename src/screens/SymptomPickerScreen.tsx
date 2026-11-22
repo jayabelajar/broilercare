@@ -37,6 +37,7 @@ export const SymptomPickerScreen: React.FC = () => {
   const setActiveScreen = useDiagnosisStore((s) => s.setActiveScreen);
   const selectedCategory = useDiagnosisStore((s) => s.selectedCategory);
   const setSelectedCategory = useDiagnosisStore((s) => s.setSelectedCategory);
+  const flockInfo = useDiagnosisStore((s) => s.flockInfo);
 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -76,14 +77,14 @@ export const SymptomPickerScreen: React.FC = () => {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerBtn}
-          onPress={() => setActiveScreen('main')}
+          onPress={() => setActiveScreen('diagnosis_info')}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="arrow-back" size={20} color={COLORS.ink} />
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
-          <Text style={styles.stepBadge}>LANGKAH 1 DARI 2</Text>
+          <Text style={styles.stepBadge}>LANGKAH 2 DARI 3</Text>
           <Text style={styles.headerTitle}>Pilih Gejala</Text>
         </View>
 
@@ -96,9 +97,9 @@ export const SymptomPickerScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Progress Bar */}
+      {/* Progress Bar 66% */}
       <View style={styles.progressBarTrack}>
-        <View style={[styles.progressBarFill, { width: '50%' }]} />
+        <View style={[styles.progressBarFill, { width: '66.6%' }]} />
       </View>
 
       {/* Scrollable Content */}
@@ -107,6 +108,31 @@ export const SymptomPickerScreen: React.FC = () => {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
+        {/* Flock Identity Summary Card */}
+        <TouchableOpacity
+          style={styles.flockSummaryCard}
+          activeOpacity={0.8}
+          onPress={() => setActiveScreen('diagnosis_info')}
+        >
+          <View style={styles.flockSummaryLeft}>
+            <View style={styles.flockIconBox}>
+              <Ionicons name="home" size={15} color={COLORS.brand} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.flockSummaryTitle}>
+                {flockInfo.cageName || 'Kandang Utama'}
+              </Text>
+              <Text style={styles.flockSummarySubtitle}>
+                {flockInfo.chickenAge ? `Umur ${flockInfo.chickenAge} Hari` : 'Umur -'} • {flockInfo.populationCount ? `Populasi ${flockInfo.populationCount.toLocaleString('id-ID')} ekor` : 'Flok Broiler'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.flockEditBtn}>
+            <Text style={styles.flockEditBtnText}>Ubah</Text>
+            <Ionicons name="create-outline" size={13} color={COLORS.brand} />
+          </View>
+        </TouchableOpacity>
+
         {/* Title & Instruction */}
         <View style={styles.headline}>
           <Text style={styles.headlineTitle}>Amati kondisi ayam di kandang</Text>
@@ -329,6 +355,57 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 24,
     gap: 12
+  },
+  flockSummaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginBottom: 4
+  },
+  flockSummaryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1
+  },
+  flockIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#E0E7FF',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  flockSummaryTitle: {
+    fontFamily: FONTS.bold,
+    fontSize: 12.5,
+    color: '#312E81'
+  },
+  flockSummarySubtitle: {
+    fontFamily: FONTS.regular,
+    fontSize: 11,
+    color: '#4F46E5',
+    marginTop: 1
+  },
+  flockEditBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF'
+  },
+  flockEditBtnText: {
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+    color: COLORS.brand
   },
   headline: {
     marginBottom: 4

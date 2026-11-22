@@ -39,7 +39,19 @@ export interface HistoryRecord {
   percentage: number;
   symptomsCount: number;
   riskLevel: string;
+  cageName?: string;
+  chickenAge?: number;
+  populationCount?: number;
+  notes?: string;
   createdTimestamp?: number;
+}
+
+export interface FlockInfo {
+  cageName: string;
+  chickenAge: number | null;
+  populationCount: number | null;
+  affectedCount: number | null;
+  notes: string;
 }
 
 export type TabKey = 'beranda' | 'katalog' | 'diagnosis' | 'riwayat' | 'profil';
@@ -47,6 +59,7 @@ export type ActiveScreen =
   | 'onboarding'
   | 'auth'
   | 'main'
+  | 'diagnosis_info'
   | 'diagnosis_symptoms'
   | 'diagnosis_confidence'
   | 'diagnosis_result';
@@ -56,6 +69,7 @@ interface DiagnosisState {
   user: UserProfile | null;
   activeTab: TabKey;
   activeScreen: ActiveScreen;
+  flockInfo: FlockInfo;
   selectedSymptoms: string[];
   confidenceValues: Record<string, number>; // symptomId -> cfUser
   selectedCategory: string;
@@ -78,6 +92,8 @@ interface DiagnosisState {
   logout: () => void;
   setActiveTab: (tab: TabKey) => void;
   setActiveScreen: (screen: ActiveScreen) => void;
+  setFlockInfo: (info: Partial<FlockInfo>) => void;
+  resetFlockInfo: () => void;
   setSelectedCategory: (cat: string) => void;
   toggleSymptom: (symptomId: string) => void;
   setSymptomConfidence: (symptomId: string, value: number) => void;
@@ -111,6 +127,13 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
   },
   activeTab: 'beranda',
   activeScreen: 'main',
+  flockInfo: {
+    cageName: 'Kandang 1',
+    chickenAge: 21,
+    populationCount: 5000,
+    affectedCount: 25,
+    notes: ''
+  },
   selectedSymptoms: [],
   confidenceValues: {},
   selectedCategory: 'SEMUA',
@@ -142,6 +165,10 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
       percentage: 99,
       symptomsCount: 5,
       riskLevel: 'SEDANG',
+      cageName: 'Kandang 1 - Postal',
+      chickenAge: 24,
+      populationCount: 5000,
+      notes: 'Ayam tampak lesu dan ngorok di malam hari saat suhu dingin',
       createdTimestamp: Date.now() - 86400000
     }
   ],
@@ -176,6 +203,10 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
           percentage: h.percentage,
           symptomsCount: h.symptoms_count,
           riskLevel: h.risk_level,
+          cageName: h.cage_name || 'Kandang Utama',
+          chickenAge: h.chicken_age,
+          populationCount: h.population_count,
+          notes: h.notes,
           createdTimestamp: h.created_timestamp
         })),
         notifications: dbNotifs
@@ -224,6 +255,10 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
             percentage: h.percentage,
             symptomsCount: h.symptoms_count,
             riskLevel: h.risk_level,
+            cageName: h.cage_name || 'Kandang Utama',
+            chickenAge: h.chicken_age,
+            populationCount: h.population_count,
+            notes: h.notes,
             createdTimestamp: h.created_timestamp
           })),
           notifications: dbNotifs,
@@ -317,6 +352,20 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
 
   setActiveTab: (tab) => set({ activeTab: tab, activeScreen: 'main' }),
   setActiveScreen: (screen) => set({ activeScreen: screen }),
+  setFlockInfo: (info) =>
+    set((state) => ({
+      flockInfo: { ...state.flockInfo, ...info }
+    })),
+  resetFlockInfo: () =>
+    set({
+      flockInfo: {
+        cageName: 'Kandang 1',
+        chickenAge: 21,
+        populationCount: 5000,
+        affectedCount: 25,
+        notes: ''
+      }
+    }),
   setSelectedCategory: (cat) => set({ selectedCategory: cat }),
 
   toggleSymptom: (symptomId) => {
@@ -345,7 +394,7 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
   clearSymptoms: () => set({ selectedSymptoms: [], confidenceValues: {} }),
 
   calculateResult: async () => {
-    const { selectedSymptoms, confidenceValues, history, user } = get();
+    const { selectedSymptoms, confidenceValues, history, user, flockInfo } = get();
     const selections = selectedSymptoms.map((id) => ({
       symptomId: id,
       userConfidence: confidenceValues[id] ?? 0.8
@@ -369,6 +418,10 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
         percentage: primary.percentage,
         symptomsCount: primary.matchedRules.length,
         riskLevel: primary.disease.riskLevel,
+        cageName: flockInfo.cageName || 'Kandang Utama',
+        chickenAge: flockInfo.chickenAge ?? undefined,
+        populationCount: flockInfo.populationCount ?? undefined,
+        notes: flockInfo.notes || undefined,
         createdTimestamp: now.getTime()
       };
 
@@ -383,6 +436,10 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
         percentage: newHistoryItem.percentage,
         symptoms_count: newHistoryItem.symptomsCount,
         risk_level: newHistoryItem.riskLevel,
+        cage_name: newHistoryItem.cageName,
+        chicken_age: newHistoryItem.chickenAge,
+        population_count: newHistoryItem.populationCount,
+        notes: newHistoryItem.notes,
         created_timestamp: now.getTime()
       });
 
@@ -390,7 +447,7 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
       const notif = await dbAddNotification(
         currentUserId,
         `Diagnosis Selesai: ${primary.disease.name}`,
-        `Terindikasi ${primary.disease.name} dengan tingkat kepastian ${primary.percentage}% berdasarkan ${primary.matchedRules.length} gejala.`,
+        `Terindikasi ${primary.disease.name} (${primary.percentage}%) pada ${newHistoryItem.cageName} berdasarkan ${primary.matchedRules.length} gejala.`,
         'diagnosis'
       );
 
@@ -481,6 +538,10 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
         percentage: h.percentage,
         symptomsCount: h.symptoms_count,
         riskLevel: h.risk_level,
+        cageName: h.cage_name || 'Kandang Utama',
+        chickenAge: h.chicken_age,
+        populationCount: h.population_count,
+        notes: h.notes,
         createdTimestamp: h.created_timestamp
       }))
     });
@@ -495,6 +556,13 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
       user: null,
       activeTab: 'beranda',
       activeScreen: 'onboarding',
+      flockInfo: {
+        cageName: 'Kandang 1',
+        chickenAge: 21,
+        populationCount: 5000,
+        affectedCount: 25,
+        notes: ''
+      },
       selectedSymptoms: [],
       confidenceValues: {},
       diagnosisResults: null,

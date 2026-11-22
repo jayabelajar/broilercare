@@ -20,7 +20,7 @@ export const HomeScreen: React.FC = () => {
 
   const handleStartDiagnosis = () => {
     clearSymptoms();
-    setActiveScreen('diagnosis_symptoms');
+    setActiveScreen('diagnosis_info');
   };
 
   // Filter history dynamically based on actual SQLite database records

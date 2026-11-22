@@ -43,6 +43,9 @@ CREATE TABLE IF NOT EXISTS diagnosis_history (
     primary_disease_id INTEGER NOT NULL,
     confidence_score REAL NOT NULL,
     knowledge_base_version TEXT NOT NULL,
+    cage_name TEXT,
+    chicken_age INTEGER,
+    population_count INTEGER,
     notes TEXT,
     FOREIGN KEY (primary_disease_id) REFERENCES diseases (id)
 );

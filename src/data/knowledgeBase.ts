@@ -313,3 +313,128 @@ export const CF_USER_SCALES = [
   { label: 'Sangat Yakin', value: 1.0 }
 ];
 
+export interface DiseaseAgeProfile {
+  minAgeDays: number;
+  maxAgeDays: number;
+  phaseName: string;
+  clinicalNote: string;
+}
+
+export const DISEASE_AGE_PROFILES: Record<string, DiseaseAgeProfile> = {
+  P01: {
+    minAgeDays: 1,
+    maxAgeDays: 10,
+    phaseName: 'DOC / Brooding Awal (1-10 Hari)',
+    clinicalNote: 'Pullorum terutama menyerang anak ayam umur di bawah 2 minggu dengan mortalitas tinggi.'
+  },
+  P02: {
+    minAgeDays: 21,
+    maxAgeDays: 45,
+    phaseName: 'Grower - Finisher (>21 Hari)',
+    clinicalNote: 'Kolera ayam lebih sering terjadi pada ayam berbobot besar mendekati panen saat cuaca ekstrem atau stres kandang.'
+  },
+  P03: {
+    minAgeDays: 1,
+    maxAgeDays: 45,
+    phaseName: 'Semua Umur (1-35+ Hari)',
+    clinicalNote: 'Flu Burung (AI) bersifat perakut dan dapat menginfeksi ayam broiler di segala kelompok umur.'
+  },
+  P04: {
+    minAgeDays: 14,
+    maxAgeDays: 45,
+    phaseName: 'Grower - Finisher (14-35 Hari)',
+    clinicalNote: 'Masa rawan ND kerap muncul saat titer antibodi maternal menurun (umur 2-3 minggu) jika imunitas vaksin tidak optimal.'
+  },
+  P05: {
+    minAgeDays: 14,
+    maxAgeDays: 45,
+    phaseName: 'Grower - Finisher (>14 Hari)',
+    clinicalNote: 'Fowl Typhoid umumnya menjangkiti ayam pedaging pada fase pembesaran hingga akhir masa panen.'
+  },
+  P06: {
+    minAgeDays: 14,
+    maxAgeDays: 28,
+    phaseName: 'Grower (14-28 Hari)',
+    clinicalNote: 'Koksidiosis berpuncak saat sekam mulai lembab di akhir masa pemanas (umur 2-4 minggu).'
+  },
+  P07: {
+    minAgeDays: 21,
+    maxAgeDays: 35,
+    phaseName: 'Grower (21-35 Hari)',
+    clinicalNote: 'Gumboro secara spesifik merusak organ bursa Fabricius pada umur puncak 3-5 minggu.'
+  },
+  P08: {
+    minAgeDays: 18,
+    maxAgeDays: 45,
+    phaseName: 'Grower - Finisher (>18 Hari)',
+    clinicalNote: 'Coryza dipicu oleh ventilasi tirai kandang yang buruk, kelembapan malam, dan perubahan cuaca.'
+  },
+  P09: {
+    minAgeDays: 7,
+    maxAgeDays: 28,
+    phaseName: 'Brooding & Grower (7-28 Hari)',
+    clinicalNote: 'Bronchitis menular (IB) menyerang silia trakea pernapasan anak ayam hingga masa pembesaran.'
+  },
+  P10: {
+    minAgeDays: 25,
+    maxAgeDays: 45,
+    phaseName: 'Finisher (>25 Hari)',
+    clinicalNote: 'Busung perut (asites / tumor leukosis) berkembang lambat dan nyata terlihat menjelang panen.'
+  },
+  P11: {
+    minAgeDays: 21,
+    maxAgeDays: 45,
+    phaseName: 'Grower - Finisher (>21 Hari)',
+    clinicalNote: 'Laryngotracheitis akut menghasilkan sumbatan eksudat darah trakea pada ayam fase pertumbuhan lanjut.'
+  },
+  P12: {
+    minAgeDays: 21,
+    maxAgeDays: 45,
+    phaseName: 'Grower - Finisher (>21 Hari)',
+    clinicalNote: 'Meskipun bibit virus masuk sejak DOC, gejala kelumpuhan saraf Marek baru nyata pada umur 3-6 minggu.'
+  },
+  P13: {
+    minAgeDays: 18,
+    maxAgeDays: 45,
+    phaseName: 'Grower - Finisher (18-35 Hari)',
+    clinicalNote: 'CRD sangat sering dipicu oleh akumulasi amonia sekam (>15 ppm) pada ayam berbobot di atas 1 kg.'
+  }
+};
+
+export interface AgeCorrelationResult {
+  isMatch: boolean;
+  phaseName: string;
+  statusText: string;
+  badgeColor: string;
+  detailText: string;
+}
+
+export function evaluateAgeCorrelation(
+  diseaseId: string,
+  ageDays: number | null | undefined
+): AgeCorrelationResult | null {
+  if (!ageDays || ageDays <= 0) return null;
+  const profile = DISEASE_AGE_PROFILES[diseaseId];
+  if (!profile) return null;
+
+  const inRange = ageDays >= profile.minAgeDays && ageDays <= profile.maxAgeDays;
+  if (inRange) {
+    return {
+      isMatch: true,
+      phaseName: profile.phaseName,
+      statusText: 'Sangat Relevan dengan Fase Umur',
+      badgeColor: '#10B981',
+      detailText: `Ayam berumur ${ageDays} hari berada dalam fase rentan (${profile.phaseName}). ${profile.clinicalNote}`
+    };
+  } else {
+    return {
+      isMatch: false,
+      phaseName: profile.phaseName,
+      statusText: 'Di Luar Fase Rentan Tipikal',
+      badgeColor: '#F59E0B',
+      detailText: `Umur flok saat ini (${ageDays} hari) berada di luar fase puncak tipikal (${profile.phaseName}: ${profile.minAgeDays}–${profile.maxAgeDays} hari). Perhatikan faktor stres cuaca, penurunan daya tahan, atau infeksi sekunder.`
+    };
+  }
+}
+
+

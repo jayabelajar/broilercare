@@ -3,13 +3,14 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Alert } from 'react-native';
 import { Disease, DiseaseDiagnosisResult } from '../core/certainty-factor/types';
-import { SYMPTOMS, DIAGNOSTIC_RULES } from '../data/knowledgeBase';
-import { UserProfile } from '../store/diagnosisStore';
+import { SYMPTOMS, DIAGNOSTIC_RULES, evaluateAgeCorrelation } from '../data/knowledgeBase';
+import { UserProfile, FlockInfo } from '../store/diagnosisStore';
 
 interface DiagnosisPdfParams {
   primary: DiseaseDiagnosisResult;
   differentials?: DiseaseDiagnosisResult[];
   user?: UserProfile | null;
+  flockInfo?: FlockInfo | null;
 }
 
 /**
@@ -71,7 +72,8 @@ const safeGenerateAndSharePdf = async (
 export const shareDiagnosisResultPdf = async ({
   primary,
   differentials = [],
-  user
+  user,
+  flockInfo
 }: DiagnosisPdfParams): Promise<void> => {
   const now = new Date();
   const dateStr = now.toLocaleDateString('id-ID', {
@@ -83,6 +85,10 @@ export const shareDiagnosisResultPdf = async ({
     hour: '2-digit',
     minute: '2-digit'
   });
+
+  const ageCorrelation = flockInfo?.chickenAge
+    ? evaluateAgeCorrelation(primary.disease.id, flockInfo.chickenAge)
+    : null;
 
   const matchedRulesRows = primary.matchedRules
     .map((rule, idx) => {
@@ -310,13 +316,28 @@ export const shareDiagnosisResultPdf = async ({
           <span class="info-value">${user?.farmName || 'Kandang Mandiri'}</span>
         </div>
         <div class="info-item">
-          <span class="info-label">Metode:</span>
-          <span class="info-value">Certainty Factor Shortliffe (1975)</span>
+          <span class="info-label">Identitas Kandang:</span>
+          <span class="info-value">${flockInfo?.cageName || 'Kandang Utama'}</span>
         </div>
         <div class="info-item">
-          <span class="info-label">Gejala Cocok:</span>
-          <span class="info-value">${primary.matchedRules.length} Gejala Klinis</span>
+          <span class="info-label">Umur Flok:</span>
+          <span class="info-value">${flockInfo?.chickenAge ? `${flockInfo.chickenAge} Hari` : 'Tidak dispesifikasikan'}</span>
         </div>
+        ${flockInfo?.populationCount ? `
+        <div class="info-item">
+          <span class="info-label">Populasi Flok:</span>
+          <span class="info-value">${flockInfo.populationCount.toLocaleString('id-ID')} Ekor</span>
+        </div>` : ''}
+        ${flockInfo?.affectedCount ? `
+        <div class="info-item">
+          <span class="info-label">Ayam Bergejala:</span>
+          <span class="info-value">${flockInfo.affectedCount.toLocaleString('id-ID')} Ekor</span>
+        </div>` : ''}
+        ${flockInfo?.notes ? `
+        <div class="info-item" style="grid-column: span 2;">
+          <span class="info-label">Catatan Lapangan:</span>
+          <span class="info-value" style="font-style: italic;">"${flockInfo.notes}"</span>
+        </div>` : ''}
       </div>
 
       <div class="primary-box">
@@ -331,6 +352,17 @@ export const shareDiagnosisResultPdf = async ({
           <div class="score-label">Certainty Factor</div>
         </div>
       </div>
+
+      ${ageCorrelation ? `
+      <div style="background-color: ${ageCorrelation.isMatch ? '#ECFDF5' : '#FFFBEB'}; border: 1.5px solid ${ageCorrelation.isMatch ? '#A7F3D0' : '#FDE68A'}; border-radius: 8px; padding: 12px 14px; margin-bottom: 18px; font-size: 11.5px;">
+        <div style="font-weight: 700; color: ${ageCorrelation.isMatch ? '#065F46' : '#92400E'}; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+          <span>${ageCorrelation.isMatch ? '✓' : '⚠'} KORELASI EPIDEMIOLOGI & UMUR:</span>
+          <span>${ageCorrelation.statusText} (${ageCorrelation.phaseName})</span>
+        </div>
+        <div style="color: #334155; line-height: 1.5;">
+          ${ageCorrelation.detailText}
+        </div>
+      </div>` : ''}
 
       <div class="section-title">Bukti Observasi Gejala & Perhitungan CF</div>
       <table>

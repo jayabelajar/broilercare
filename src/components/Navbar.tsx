@@ -26,7 +26,7 @@ export const Navbar: React.FC = () => {
   const handleTabPress = (tab: typeof tabs[0]) => {
     if (tab.isAction) {
       clearSymptoms();
-      setActiveScreen('diagnosis_symptoms');
+      setActiveScreen('diagnosis_info');
     } else {
       setActiveTab(tab.key);
     }
