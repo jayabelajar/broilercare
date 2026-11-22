@@ -287,8 +287,6 @@ export const DiagnosisInfoScreen: React.FC = () => {
             textAlignVertical="top"
           />
         </View>
-
-        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Persistent Bottom Bar */}
@@ -536,10 +534,6 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,

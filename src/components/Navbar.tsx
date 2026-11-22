@@ -89,7 +89,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 6,
     paddingBottom: Platform.OS === 'ios' ? 12 : 8,
-    backgroundColor: COLORS.canvas
+    backgroundColor: COLORS.canvas,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center'
   },
   floatingBar: {
     backgroundColor: COLORS.surface,

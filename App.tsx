@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -115,19 +115,25 @@ export default function App() {
     );
   };
 
+  const isWeb = Platform.OS === 'web';
+
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
-        <StatusBar style="dark" />
-        {renderContent()}
-        <NotificationBanner />
-        <NotificationModal
-          visible={isNotificationModalOpen}
-          onClose={closeNotificationModal}
-        />
-        <DiseaseDetailModal />
-        <ResearchBenchModal />
-      </SafeAreaView>
+      <View style={isWeb ? styles.webOuterWrapper : styles.nativeRoot}>
+        <View style={isWeb ? styles.webMobileFrame : styles.nativeRoot}>
+          <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+            <StatusBar style="dark" />
+            {renderContent()}
+            <NotificationBanner />
+            <NotificationModal
+              visible={isNotificationModalOpen}
+              onClose={closeNotificationModal}
+            />
+            <DiseaseDetailModal />
+            <ResearchBenchModal />
+          </SafeAreaView>
+        </View>
+      </View>
     </SafeAreaProvider>
   );
 }
@@ -138,6 +144,34 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.canvas,
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  nativeRoot: {
+    flex: 1,
+    backgroundColor: COLORS.canvas
+  },
+  webOuterWrapper: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  webMobileFrame: {
+    width: '100%',
+    maxWidth: 480,
+    height: '100%',
+    maxHeight: '100vh',
+    backgroundColor: COLORS.canvas,
+    overflow: 'hidden',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: '#1E293B',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 28,
+    elevation: 12
   },
   safeArea: {
     flex: 1,
