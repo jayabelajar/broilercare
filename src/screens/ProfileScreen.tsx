@@ -94,7 +94,7 @@ export const ProfileScreen: React.FC = () => {
               🏠 {user?.farmName || 'Peternakan Broiler Mandiri'}
             </Text>
             <Text style={styles.userEmail} numberOfLines={1}>
-              ✉️ {user?.email || 'peternak@ohmychick.id'}
+              ✉️ {user?.email || 'peternak@broilercare.id'}
             </Text>
           </View>
 
@@ -132,7 +132,7 @@ export const ProfileScreen: React.FC = () => {
         <View style={styles.specsCard}>
           <View style={styles.specRow}>
             <Text style={styles.specLabel}>Nama Sistem:</Text>
-            <Text style={styles.specValue}>OhMyChick Expert System</Text>
+            <Text style={styles.specValue}>BroilerCare Expert System</Text>
           </View>
           <View style={styles.specRow}>
             <Text style={styles.specLabel}>Algoritma:</Text>

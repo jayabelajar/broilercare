@@ -100,7 +100,7 @@ export const AuthScreen: React.FC = () => {
           </View>
           <View style={styles.headerInfoCompact}>
             <View style={styles.headerTitleRow}>
-              <Text style={styles.appNameCompact}>OhMyChick</Text>
+              <Text style={styles.appNameCompact}>BroilerCare</Text>
               <View style={styles.expertBadge}>
                 <Text style={styles.expertBadgeText}>Sistem Pakar</Text>
               </View>
@@ -204,7 +204,7 @@ export const AuthScreen: React.FC = () => {
               <Ionicons name="mail-outline" size={17} color={COLORS.muted} />
               <TextInput
                 style={styles.input}
-                placeholder="peternak@ohmychick.id"
+                placeholder="peternak@broilercare.id"
                 placeholderTextColor={COLORS.subtle}
                 value={email}
                 onChangeText={setEmail}

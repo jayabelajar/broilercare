@@ -121,7 +121,7 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
     id: 'USR-SEED-01',
     name: 'Budi Santoso',
     farmName: 'Berkah Broiler Farm',
-    email: 'peternak@ohmychick.id',
+    email: 'peternak@broilercare.id',
     location: 'Ciamis, Jawa Barat',
     avatar: '👨‍🌾'
   },
@@ -145,7 +145,7 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
     {
       id: 'NOTIF-INIT-1',
       user_id: 'USR-SEED-01',
-      title: 'Selamat Datang di OhMyChick!',
+      title: 'Selamat Datang di BroilerCare!',
       message: 'Sistem siap membantu diagnosis kesehatan ayam broiler Anda dengan metode Certainty Factor.',
       date: '8 Nov 2026',
       time: '18:30',
@@ -288,7 +288,7 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
         await dbAddNotification(
           profile.id,
           'Akun Berhasil Didaftarkan',
-          `Selamat datang di OhMyChick, ${profile.name}! Peternakan ${profile.farmName} siap didiagnosis.`,
+          `Selamat datang di BroilerCare, ${profile.name}! Peternakan ${profile.farmName} siap didiagnosis.`,
           'system'
         );
         const dbNotifs = await dbGetNotifications(profile.id);
@@ -335,7 +335,7 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
         id: 'GUEST',
         name: 'Tamu (Peternak)',
         farmName: 'Mode Tamu Offline',
-        email: 'tamu@ohmychick.local',
+        email: 'tamu@broilercare.local',
         avatar: '🐥'
       },
       activeScreen: 'main',

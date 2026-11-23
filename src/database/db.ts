@@ -51,7 +51,7 @@ const memoryStore = {
 export async function getDB(): Promise<SQLite.SQLiteDatabase | null> {
   if (dbInstance) return dbInstance;
   try {
-    dbInstance = await SQLite.openDatabaseAsync('ohmychick.db');
+    dbInstance = await SQLite.openDatabaseAsync('broilercare.db');
     return dbInstance;
   } catch (err) {
     console.warn('[DB] Using fallback storage:', err);
@@ -126,7 +126,7 @@ export async function initDatabase(): Promise<void> {
           'USR-SEED-01',
           'Budi Santoso',
           'Berkah Broiler Farm',
-          'peternak@ohmychick.id',
+          'peternak@broilercare.id',
           '123456',
           '👨‍🌾',
           new Date().toISOString()
@@ -163,7 +163,7 @@ export async function initDatabase(): Promise<void> {
         [
           'NOTIF-INIT-1',
           'USR-SEED-01',
-          'Selamat Datang di OhMyChick!',
+          'Selamat Datang di BroilerCare!',
           'Sistem siap membantu diagnosis kesehatan ayam broiler Anda dengan metode Certainty Factor.',
           '8 Nov 2026',
           '18:30',
@@ -179,7 +179,7 @@ export async function initDatabase(): Promise<void> {
         id: 'USR-SEED-01',
         name: 'Budi Santoso',
         farm_name: 'Berkah Broiler Farm',
-        email: 'peternak@ohmychick.id',
+        email: 'peternak@broilercare.id',
         password: '123456',
         avatar: '👨‍🌾',
         created_at: new Date().toISOString()
@@ -203,7 +203,7 @@ export async function initDatabase(): Promise<void> {
       memoryStore.notifications.push({
         id: 'NOTIF-INIT-1',
         user_id: 'USR-SEED-01',
-        title: 'Selamat Datang di OhMyChick!',
+        title: 'Selamat Datang di BroilerCare!',
         message: 'Sistem siap membantu diagnosis kesehatan ayam broiler Anda.',
         date: '8 Nov 2026',
         time: '18:30',

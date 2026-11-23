@@ -1,4 +1,4 @@
-# OhMyChick — Sistem Pakar Diagnosis Penyakit Ayam Broiler (Certainty Factor)
+# BroilerCare — Sistem Pakar Diagnosis Penyakit Ayam Broiler (Certainty Factor)
 
 Aplikasi sistem pakar cerdas berbasis *Offline-First* dengan penyimpanan lokal **SQLite** untuk membantu peternak ayam broiler mendeteksi dan mengidentifikasi penyakit kawanan secara cepat dan terukur menggunakan metode **Certainty Factor (CF)**.
 
@@ -13,7 +13,7 @@ Aplikasi ini dikembangkan berdasarkan spesifikasi teknis `PRD.MD` dan berlandask
 ## 🎨 Tampilan & Branding UI
 
 Sesuai pembaruan terkini:
-- **Branding:** `OhMyChick`
+- **Branding:** `BroilerCare`
 - **Typography:** **Plus Jakarta Sans** di seluruh layar aplikasi.
 - **Nuansa Warna:** **Medical & Veterinary Royal Blue**
   - Primary Brand: `#2563EB`

@@ -136,7 +136,7 @@ export const shareDiagnosisResultPdf = async ({
     <html>
     <head>
       <meta charset="utf-8" />
-      <title>Hasil Diagnosis - OhMyChick</title>
+      <title>Hasil Diagnosis - BroilerCare</title>
       <style>
         @page {
           margin: 18mm;
@@ -296,7 +296,7 @@ export const shareDiagnosisResultPdf = async ({
     <body>
       <div class="header-top">
         <div>
-          <div class="brand-title">OhMyChick</div>
+          <div class="brand-title">BroilerCare</div>
           <div class="brand-sub">Sistem Pakar Diagnostik Kesehatan Ayam Broiler</div>
         </div>
         <div class="doc-meta">
@@ -394,7 +394,7 @@ export const shareDiagnosisResultPdf = async ({
       ${differentialsHtml}
 
       <div class="footer-disclaimer">
-        Laporan ini dibuat otomatis oleh Sistem Pakar OhMyChick menggunakan algoritma Shortliffe Deterministic Rule.<br />
+        Laporan ini dibuat otomatis oleh Sistem Pakar BroilerCare menggunakan algoritma Shortliffe Deterministic Rule.<br />
         Digunakan sebagai acuan rujukan penanganan cepat dan mitigasi mortalitas kawanan ayam broiler di kandang.
       </div>
     </body>
@@ -442,7 +442,7 @@ export const shareDiseaseInfoPdf = async (
     <html>
     <head>
       <meta charset="utf-8" />
-      <title>${disease.name} - OhMyChick</title>
+      <title>${disease.name} - BroilerCare</title>
       <style>
         @page {
           margin: 18mm;
@@ -556,7 +556,7 @@ export const shareDiseaseInfoPdf = async (
     <body>
       <div class="header-top">
         <div>
-          <div class="brand-title">OhMyChick</div>
+          <div class="brand-title">BroilerCare</div>
           <div class="brand-sub">Lembar Informasi Klinis Patologi Broiler</div>
         </div>
         <div class="doc-meta">
@@ -605,7 +605,7 @@ export const shareDiseaseInfoPdf = async (
       </div>
 
       <div class="footer-disclaimer">
-        Diterbitkan oleh OhMyChick Expert System. Referensi: Shortliffe & Buchanan (1975).
+        Diterbitkan oleh BroilerCare Expert System. Referensi: Shortliffe & Buchanan (1975).
       </div>
     </body>
     </html>

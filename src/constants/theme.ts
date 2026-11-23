@@ -1,5 +1,5 @@
 export const COLORS = {
-  // Brand Blue Hierarchy (Konsisten Nuansa OhMyChick)
+  // Brand Blue Hierarchy (Konsisten Nuansa BroilerCare)
   brand: '#2563EB',         // Primary Blue
   brandDark: '#1D4ED8',     // Deep Royal Blue
   brandNavy: '#0F172A',     // Slate Navy

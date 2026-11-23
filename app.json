@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "OhMyChick",
-    "slug": "ohmychick",
+    "name": "BroilerCare",
+    "slug": "broilercare",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,7 +10,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.ohmychick.app",
+      "package": "com.broilercare.app",
       "adaptiveIcon": {
         "backgroundColor": "#1E56A0",
         "foregroundImage": "./assets/android-icon-foreground.png"

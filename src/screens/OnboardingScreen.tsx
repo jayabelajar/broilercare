@@ -72,7 +72,7 @@ export const OnboardingScreen: React.FC = () => {
       <View style={styles.topBar}>
         <View style={styles.brandBadge}>
           <Ionicons name="medkit" size={14} color={COLORS.brand} />
-          <Text style={styles.brandBadgeText}>OhMyChick</Text>
+          <Text style={styles.brandBadgeText}>BroilerCare</Text>
         </View>
         {!isLast && (
           <TouchableOpacity onPress={handleSkip} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>

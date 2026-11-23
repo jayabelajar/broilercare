@@ -36,7 +36,7 @@ export const SettingsScreen: React.FC = () => {
               <Text style={styles.appIconText}>OMC</Text>
             </View>
             <View>
-              <Text style={styles.appName}>OhMyChick Mobile</Text>
+              <Text style={styles.appName}>BroilerCare Mobile</Text>
               <Text style={styles.appVer}>v1.0.0 — Offline-First Architecture</Text>
             </View>
           </View>
@@ -263,4 +263,3 @@ const styles = StyleSheet.create({
     lineHeight: 16
   }
 });
-
